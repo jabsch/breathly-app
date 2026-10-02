@@ -30,6 +30,22 @@ describe("exercise session lifecycle", () => {
     expect(resumed).toMatchObject({ status: "running", activeElapsedMs: 5_000 });
   });
 
+  it("remembers that the user paused, until the session resumes", () => {
+    const running = exerciseSessionReducer(createExerciseSession(), { type: "start" });
+    const paused = exerciseSessionReducer(running, {
+      type: "pause",
+      activeElapsedMs: 5_000,
+      byUser: true,
+    });
+    const resumed = exerciseSessionReducer(paused, { type: "resume" });
+
+    expect(paused).toMatchObject({ status: "paused", pausedByUser: true });
+    expect(resumed.pausedByUser).toBeUndefined();
+    expect(
+      exerciseSessionReducer(running, { type: "pause", activeElapsedMs: 0 }).pausedByUser,
+    ).toBe(false);
+  });
+
   it("counts normal heartbeats of the foreground", () => {
     expect(getActiveTickDeltaMs(1_000, 1_250, true, 1_000)).toBe(250);
     expect(getActiveTickDeltaMs(1_000, 2_000, true, 1_000)).toBe(1_000);

@@ -1,4 +1,10 @@
-import { getSaunaRemainingMs, startSaunaTimer, useSaunaStore } from "../sauna";
+import {
+  getSaunaRemainingMs,
+  pauseSaunaTimer,
+  resumeSaunaTimer,
+  startSaunaTimer,
+  useSaunaStore,
+} from "../sauna";
 
 describe("sauna timer", () => {
   it("counts down on the wall clock from its end time", () => {
@@ -23,5 +29,25 @@ describe("sauna timer", () => {
 
     store.stop();
     expect(useSaunaStore.getState().timer.status).toBe("idle");
+  });
+});
+
+describe("sauna timer pause", () => {
+  it("keeps the remaining time while paused and counts on from it", () => {
+    const running = startSaunaTimer(0, 15 * 60_000);
+    const paused = pauseSaunaTimer(running, 5 * 60_000);
+
+    expect(paused).toEqual({ status: "paused", remainingMs: 10 * 60_000 });
+    // However long the pause lasts, the time left does not change.
+    expect(getSaunaRemainingMs(paused, 60 * 60_000)).toBe(10 * 60_000);
+
+    const resumed = resumeSaunaTimer(paused, 60 * 60_000);
+    expect(getSaunaRemainingMs(resumed, 61 * 60_000)).toBe(9 * 60_000);
+  });
+
+  it("pauses only a running timer and resumes only a paused one", () => {
+    expect(pauseSaunaTimer({ status: "idle" }, 0)).toEqual({ status: "idle" });
+    const running = startSaunaTimer(0, 60_000);
+    expect(resumeSaunaTimer(running, 30_000)).toBe(running);
   });
 });

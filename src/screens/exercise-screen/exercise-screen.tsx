@@ -147,6 +147,11 @@ export const ExerciseScreen: FC<NativeStackScreenProps<RootStackParamList, "Exer
     activeElapsedMs.current = elapsedMs;
   }, []);
 
+  const handlePause = useCallback(() => {
+    stopExerciseAudio();
+    dispatchSession({ type: "pause", activeElapsedMs: activeElapsedMs.current, byUser: true });
+  }, [stopExerciseAudio]);
+
   const handleResume = useCallback(() => {
     dispatchSession({ type: "resume" });
   }, []);
@@ -165,7 +170,9 @@ export const ExerciseScreen: FC<NativeStackScreenProps<RootStackParamList, "Exer
         },
       ]}
     >
-      <SaunaTimer compact />
+      <View style={styles.saunaRow}>
+        <SaunaTimer hideWhenIdle />
+      </View>
       {session.status === "interlude" && <ExerciseInterlude onComplete={handleInterludeComplete} />}
       {session.status === "running" && (
         <>
@@ -184,7 +191,11 @@ export const ExerciseScreen: FC<NativeStackScreenProps<RootStackParamList, "Exer
         </>
       )}
       {session.status === "paused" && (
-        <ExercisePaused resumeStatus={session.resumeStatus} onResume={handleResume} />
+        <ExercisePaused
+          resumeStatus={session.resumeStatus}
+          pausedByUser={session.pausedByUser ?? false}
+          onResume={handleResume}
+        />
       )}
       {session.status === "completed" && <ExerciseComplete />}
       {/* The countdown and the paused screen need the display awake as much as the exercise
@@ -193,6 +204,17 @@ export const ExerciseScreen: FC<NativeStackScreenProps<RootStackParamList, "Exer
           there would keep it lit until the user came back to the phone. */}
       {session.status !== "completed" && <KeepDisplayAwake />}
       <View style={styles.closeButtonRow}>
+        {(session.status === "interlude" || session.status === "running") && (
+          <Pressable
+            style={[styles.closeButton, { borderColor: theme.control }]}
+            onPress={handlePause}
+            testID="exercise.pause"
+            accessibilityLabel="Pause breathing session"
+            accessibilityRole="button"
+          >
+            <Ionicons name="pause" size={22} color={theme.control} />
+          </Pressable>
+        )}
         <Pressable
           style={[styles.closeButton, { borderColor: theme.control }]}
           onPress={navigation.goBack}
@@ -334,10 +356,11 @@ const ExerciseRunningFragment: FC<ExerciseRunningFragmentProps> = ({
 
 interface ExercisePausedProps {
   resumeStatus?: ResumableExerciseStatus;
+  pausedByUser: boolean;
   onResume: () => void;
 }
 
-const ExercisePaused: FC<ExercisePausedProps> = ({ resumeStatus, onResume }) => {
+const ExercisePaused: FC<ExercisePausedProps> = ({ resumeStatus, pausedByUser, onResume }) => {
   const isDarkMode = useColorScheme() === "dark";
   const theme = useThemeColors();
 
@@ -356,9 +379,11 @@ const ExercisePaused: FC<ExercisePausedProps> = ({ resumeStatus, onResume }) => 
         Paused
       </Text>
       <Text style={[styles.pausedDescription, { color: theme.textSecondary }]}>
-        {resumeStatus === "interlude"
-          ? "The starting countdown was interrupted."
-          : "The session paused while Breathly was in the background."}
+        {pausedByUser
+          ? "Take your time. The session continues where you left off."
+          : resumeStatus === "interlude"
+            ? "The starting countdown was interrupted."
+            : "The session paused while Breathly was in the background."}
       </Text>
       <Pressable
         accessibilityRole="button"
@@ -374,6 +399,10 @@ const ExercisePaused: FC<ExercisePausedProps> = ({ resumeStatus, onResume }) => 
 };
 
 const styles = StyleSheet.create({
+  saunaRow: {
+    alignItems: "center",
+    paddingTop: 8,
+  },
   closeButton: {
     alignItems: "center",
     borderRadius: 9999,
@@ -384,6 +413,8 @@ const styles = StyleSheet.create({
   },
   closeButtonRow: {
     alignItems: "center",
+    flexDirection: "row",
+    gap: 24,
     justifyContent: "center",
     paddingBottom: 40,
     paddingTop: 24,
