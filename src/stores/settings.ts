@@ -9,6 +9,7 @@ import {
 } from "zustand/middleware";
 import { patternPresets } from "@breathly/assets/pattern-presets";
 import {
+  adjustSaunaTimeLimit,
   adjustTimeLimit,
   defaultSettingsState,
   mergePersistedSettingsState,
@@ -32,6 +33,8 @@ interface SettingsStore extends PersistedSettingsState {
   setShouldFollowSystemDarkMode: (shouldFollowSystemDarkMode: boolean) => unknown;
   setTheme: (theme: Theme) => unknown;
   setVibrationEnabled: (vibrationEnabled: boolean) => unknown;
+  increaseSaunaTimeLimit: () => unknown;
+  decreaseSaunaTimeLimit: () => unknown;
 }
 
 const readRetryDelayMs = 50;
@@ -111,6 +114,10 @@ export const useSettingsStore = create<SettingsStore>()(
           set({ shouldFollowSystemDarkMode }),
         setTheme: (theme) => set({ theme }),
         setVibrationEnabled: (vibrationEnabled) => set({ vibrationEnabled }),
+        increaseSaunaTimeLimit: () =>
+          set({ saunaTimeLimit: adjustSaunaTimeLimit(get().saunaTimeLimit, timeLimitStepMs) }),
+        decreaseSaunaTimeLimit: () =>
+          set({ saunaTimeLimit: adjustSaunaTimeLimit(get().saunaTimeLimit, -timeLimitStepMs) }),
       }),
       {
         name: "settings-storage",

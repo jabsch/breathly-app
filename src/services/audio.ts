@@ -160,3 +160,18 @@ export const playEndingBellSound = async () => {
     // Completion must not fail because the optional ending bell could not play.
   }
 };
+
+// The sauna alarm has a player of its own: it rings whether or not a breathing session is
+// running, and the session builds and releases its players as it comes and goes.
+let saunaAlarmSound: AudioPlayer | undefined;
+
+export const playSaunaAlarmSound = async () => {
+  try {
+    await configureAudioMode();
+    saunaAlarmSound ??= createAudioPlayer(await prepareAudioSource(sounds.endingBell));
+    await saunaAlarmSound.seekTo(0);
+    saunaAlarmSound.play();
+  } catch {
+    // The vibration still marks the end of the sauna time.
+  }
+};

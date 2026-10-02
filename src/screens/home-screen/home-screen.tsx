@@ -10,6 +10,7 @@ import { useColorScheme, useThemeColors } from "@breathly/design/theme";
 import { fontFamilies, fontSizes } from "@breathly/design/typography";
 import { PlanetsBackground } from "@breathly/screens/home-screen/planets-background";
 import { StarsBackground } from "@breathly/screens/home-screen/stars-background";
+import { SaunaTimer } from "@breathly/screens/sauna/sauna-timer";
 
 export const useHomeScreenStatusStore = create<{
   isHomeScreenReady: boolean;
@@ -76,6 +77,7 @@ export const HomeScreen: FC<NativeStackScreenProps<RootStackParamList, "Home">> 
           Relax, focus on your breath, and find your inner peace.
         </Animated.Text>
       </View>
+      <SaunaTimer />
       <Pressable
         style={[styles.button, styles.startButton]}
         onPress={handleStartButtonPress}

@@ -28,6 +28,7 @@ import { useExerciseAudio } from "@breathly/screens/exercise-screen/use-exercise
 import { useExerciseHaptics } from "@breathly/screens/exercise-screen/use-exercise-haptics";
 import { useExerciseLoop } from "@breathly/screens/exercise-screen/use-exercise-loop";
 import { StarsBackground } from "@breathly/screens/home-screen/stars-background";
+import { SaunaTimer } from "@breathly/screens/sauna/sauna-timer";
 import { useBackgroundSession } from "@breathly/services/background-session";
 import {
   useSelectedPatternName,
@@ -164,6 +165,7 @@ export const ExerciseScreen: FC<NativeStackScreenProps<RootStackParamList, "Exer
         },
       ]}
     >
+      <SaunaTimer compact />
       {session.status === "interlude" && <ExerciseInterlude onComplete={handleInterludeComplete} />}
       {session.status === "running" && (
         <>

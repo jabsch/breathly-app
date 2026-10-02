@@ -15,6 +15,7 @@ export interface PersistedSettingsState {
   shouldFollowSystemDarkMode: boolean;
   theme: Theme;
   vibrationEnabled: boolean;
+  saunaTimeLimit: number;
 }
 
 // A tuple, not an array: `normalizePersistedSettingsState` maps over this to build the four
@@ -33,6 +34,8 @@ export const customPatternDurationLimits: [
 export const customPatternStepSizeMs = ms("0.5 sec");
 export const timeLimitStepMs = ms("1 min");
 export const maximumTimeLimitMs = ms("60 min");
+export const minimumSaunaTimeLimitMs = ms("1 min");
+export const maximumSaunaTimeLimitMs = ms("60 min");
 
 export const defaultSettingsState: PersistedSettingsState = {
   customPatternEnabled: false,
@@ -43,6 +46,7 @@ export const defaultSettingsState: PersistedSettingsState = {
   shouldFollowSystemDarkMode: true,
   theme: "light",
   vibrationEnabled: true,
+  saunaTimeLimit: ms("15 min"),
 };
 
 const guidedBreathingModes: GuidedBreathingMode[] = ["laura", "paul", "bell", "disabled"];
@@ -75,6 +79,14 @@ export const setCustomPatternStepValue = (
 
 export const adjustTimeLimit = (timeLimit: number, deltaMs: number) =>
   clampFiniteNumber(timeLimit + deltaMs, 0, maximumTimeLimitMs, defaultSettingsState.timeLimit);
+
+export const adjustSaunaTimeLimit = (saunaTimeLimit: number, deltaMs: number) =>
+  clampFiniteNumber(
+    saunaTimeLimit + deltaMs,
+    minimumSaunaTimeLimitMs,
+    maximumSaunaTimeLimitMs,
+    defaultSettingsState.saunaTimeLimit,
+  );
 
 export const normalizePersistedSettingsState = (value: unknown): PersistedSettingsState => {
   const candidate = isRecord(value) ? value : {};
@@ -125,6 +137,12 @@ export const normalizePersistedSettingsState = (value: unknown): PersistedSettin
       typeof candidate.vibrationEnabled === "boolean"
         ? candidate.vibrationEnabled
         : defaultSettingsState.vibrationEnabled,
+    saunaTimeLimit: clampFiniteNumber(
+      candidate.saunaTimeLimit,
+      minimumSaunaTimeLimitMs,
+      maximumSaunaTimeLimitMs,
+      defaultSettingsState.saunaTimeLimit,
+    ),
   };
 };
 
