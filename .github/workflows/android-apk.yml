@@ -50,7 +50,12 @@ jobs:
       # sideload. A Play Store build still goes through EAS.
       - name: Build the release APK
         working-directory: android
-        run: ./gradlew assembleRelease --no-daemon
+        # Only the ABIs that matter: arm64 for the phone, x86_64 for the emulator. All four
+        # made packaging run out of memory, and the build twice as slow.
+        run: >-
+          ./gradlew assembleRelease --no-daemon --stacktrace
+          -PreactNativeArchitectures=arm64-v8a,x86_64
+          "-Dorg.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=1g"
 
       - name: Name the APK
         run: |
