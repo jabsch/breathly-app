@@ -109,7 +109,7 @@ describe("settings persistence", () => {
     const useSettingsStore = await loadSettingsStore();
 
     expect(useSettingsStore.persist.hasHydrated()).toBe(true);
-    expect(useSettingsStore.getState().theme).toBe("light");
+    expect(useSettingsStore.getState().theme).toBe(defaultSettingsState.theme);
     expect(useSettingsStore.getState().timeLimit).toBe(0);
   });
 

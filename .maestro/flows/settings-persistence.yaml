@@ -25,10 +25,9 @@ name: Customize and persist settings
 - assertVisible: ".*Square \\(4-4-4-4\\).*"
 - runFlow:
     file: ../subflows/set-disabled-voice.yaml
-- tapOn:
-    id: "settings.system-theme"
+# The app starts in the dark theme; switch to light and check that it sticks.
 - runFlow:
-    file: ../subflows/set-dark-theme.yaml
+    file: ../subflows/set-light-theme.yaml
 - tapOn:
     id: "settings.vibration"
 - scrollUntilVisible:
@@ -55,7 +54,7 @@ name: Customize and persist settings
     timeout: 5000
 - assertVisible: ".*Square \\(4-4-4-4\\).*"
 - assertVisible: ".*Disabled.*"
-- assertVisible: ".*Dark theme.*"
+- assertVisible: ".*Light theme.*"
 - scrollUntilVisible:
     element:
       id: "settings.timer.value"

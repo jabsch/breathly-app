@@ -43,8 +43,9 @@ export const defaultSettingsState: PersistedSettingsState = {
   selectedPatternPresetId: "deep-calm",
   guidedBreathingVoice: "paul",
   timeLimit: ms("5 min"),
-  shouldFollowSystemDarkMode: true,
-  theme: "light",
+  // Dark by default; light stays one tap away in the settings.
+  shouldFollowSystemDarkMode: false,
+  theme: "dark",
   vibrationEnabled: true,
   saunaTimeLimit: ms("15 min"),
 };
@@ -112,7 +113,9 @@ export const normalizePersistedSettingsState = (value: unknown): PersistedSettin
     ? (candidate.guidedBreathingVoice as GuidedBreathingMode)
     : defaultSettingsState.guidedBreathingVoice;
   const theme =
-    candidate.theme === "dark" || candidate.theme === "light" ? candidate.theme : "light";
+    candidate.theme === "dark" || candidate.theme === "light"
+      ? candidate.theme
+      : defaultSettingsState.theme;
 
   return {
     customPatternEnabled:

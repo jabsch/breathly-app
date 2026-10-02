@@ -1,0 +1,24 @@
+appId: com.mmazzarolo.breathly
+---
+# On Android the theme choice is an inline segmented button row.
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - tapOn:
+          id: "settings.theme.option.light"
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - tapOn:
+          id: "settings.theme"
+      - swipe:
+          from:
+            id: "settings.theme.picker"
+          direction: DOWN
+      - swipe:
+          from:
+            id: "settings.theme.picker"
+          direction: DOWN
+- assertVisible: ".*Light theme.*"
