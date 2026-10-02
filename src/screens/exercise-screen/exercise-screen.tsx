@@ -28,7 +28,12 @@ import { useExerciseAudio } from "@breathly/screens/exercise-screen/use-exercise
 import { useExerciseHaptics } from "@breathly/screens/exercise-screen/use-exercise-haptics";
 import { useExerciseLoop } from "@breathly/screens/exercise-screen/use-exercise-loop";
 import { StarsBackground } from "@breathly/screens/home-screen/stars-background";
-import { useSelectedPatternSteps, useSettingsStore } from "@breathly/stores/settings";
+import { useBackgroundSession } from "@breathly/services/background-session";
+import {
+  useSelectedPatternName,
+  useSelectedPatternSteps,
+  useSettingsStore,
+} from "@breathly/stores/settings";
 import { GuidedBreathingMode } from "@breathly/types/guided-breathing-mode";
 import { StepMetadata } from "@breathly/types/step-metadata";
 import { animate } from "@breathly/utils/animate";
@@ -43,6 +48,9 @@ import { Timer } from "./timer";
 // The voice that the exercise uses for a user of a screen reader who disabled
 // it. It is the default voice of the app.
 const screenReaderFallbackVoice: GuidedBreathingMode = "paul";
+
+// The ending bell lasts about six seconds.
+const endingBellHoldMs = 8000;
 
 export const ExerciseScreen: FC<NativeStackScreenProps<RootStackParamList, "Exercise">> = ({
   navigation,
@@ -71,7 +79,28 @@ export const ExerciseScreen: FC<NativeStackScreenProps<RootStackParamList, "Exer
     effectiveGuidedBreathingVoice,
   );
 
+  // On Android the session keeps running, cues included, while the screen is off or another
+  // app is in front. Elsewhere, or if Android refused the service, it pauses in the background.
+  const selectedPatternName = useSelectedPatternName();
+  const [endingBellFinished, setEndingBellFinished] = useState(false);
+  const continuesInBackground = useBackgroundSession(
+    session.status === "interlude" ||
+      session.status === "running" ||
+      // The bell rings on after the session completes: releasing the wake lock with the
+      // screen off would cut it short.
+      (session.status === "completed" && !endingBellFinished),
+    `${selectedPatternName} session in progress`,
+  );
+
   useEffect(() => {
+    if (session.status !== "completed") return;
+    const timeout = setTimeout(() => setEndingBellFinished(true), endingBellHoldMs);
+    return () => clearTimeout(timeout);
+  }, [session.status]);
+
+  useEffect(() => {
+    if (continuesInBackground) return;
+
     const subscription = AppState.addEventListener("change", (nextAppState) => {
       // iOS reports "inactive" for the Control Center, the Notification Center,
       // the app switcher and the banner of an incoming call. The app stays on
@@ -91,7 +120,7 @@ export const ExerciseScreen: FC<NativeStackScreenProps<RootStackParamList, "Exer
     });
 
     return () => subscription.remove();
-  }, [stopExerciseAudio]);
+  }, [continuesInBackground, stopExerciseAudio]);
 
   const handleInterludeComplete = useCallback(() => {
     dispatchSession({ type: "start" });
@@ -142,6 +171,7 @@ export const ExerciseScreen: FC<NativeStackScreenProps<RootStackParamList, "Exer
             <StarsBackground size={widestDeviceDimension * 0.8} fadeIn={true} />
           )}
           <ExerciseRunningFragment
+            continuesInBackground={continuesInBackground}
             onComplete={handleExerciseComplete}
             onStepChange={handleExerciseStepChange}
             onStepIndexChange={handleStepIndexChange}
@@ -182,6 +212,7 @@ const KeepDisplayAwake: FC = () => {
 };
 
 interface ExerciseRunningFragmentProps {
+  continuesInBackground: boolean;
   onComplete: () => unknown;
   onStepChange: (stepMetadata: StepMetadata) => unknown;
   onStepIndexChange: (stepIndex: number) => void;
@@ -193,6 +224,7 @@ interface ExerciseRunningFragmentProps {
 const unmountAnimDuration = 300;
 
 const ExerciseRunningFragment: FC<ExerciseRunningFragmentProps> = ({
+  continuesInBackground,
   onComplete,
   onStepChange,
   onStepIndexChange,
@@ -222,17 +254,19 @@ const ExerciseRunningFragment: FC<ExerciseRunningFragmentProps> = ({
   const timeLimitReachedRef = useRef(false);
   const completionStartedRef = useRef(false);
 
+  // The fade is only visual. Android runs no animation frames while the screen is off, so a
+  // completion that waited for the fade to finish would never ring the ending bell there.
+  const completionTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(completionTimeoutRef.current), []);
+
   const startCompletion = () => {
     if (completionStartedRef.current) return;
     completionStartedRef.current = true;
     animate(unmountContentAnimVal, {
       toValue: 0,
       duration: unmountAnimDuration,
-    }).start(({ finished }) => {
-      if (finished) {
-        onComplete();
-      }
-    });
+    }).start();
+    completionTimeoutRef.current = setTimeout(onComplete, unmountAnimDuration);
   };
 
   useOnUpdate(
@@ -271,6 +305,7 @@ const ExerciseRunningFragment: FC<ExerciseRunningFragmentProps> = ({
   return (
     <Animated.View style={[styles.runningContent, contentAnimatedStyle]} testID="exercise.running">
       <Timer
+        countsInBackground={continuesInBackground}
         limit={timeLimit}
         initialActiveElapsedMs={initialActiveElapsedMs}
         onActiveElapsedChange={onActiveElapsedChange}

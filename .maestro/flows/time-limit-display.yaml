@@ -27,12 +27,6 @@ name: Show two-digit exercise time limit
     id: "settings.timer.increase"
 - tapOn:
     id: "settings.timer.increase"
-- tapOn:
-    id: "settings.timer.increase"
-- tapOn:
-    id: "settings.timer.increase"
-- tapOn:
-    id: "settings.timer.increase"
 - assertVisible:
     id: "settings.timer.value"
     text: "10"

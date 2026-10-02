@@ -54,16 +54,23 @@ export const ExerciseInterlude: FC<Props> = ({ onComplete }) => {
     goToStep(1);
     await delay(1000);
     if (!isMountedRef.current) return;
-    hideContainerAnimation.start((done) => done && onComplete());
+    hideContainerAnimation.start();
+    await delay(interludeAnimDuration);
+    if (!isMountedRef.current) return;
+    onComplete();
   };
 
+  // The countdown waits on timers, never on the end of an animation: Android runs no animation
+  // frames while the screen is off, and a session started just before locking the phone would
+  // otherwise never get past the countdown.
   const animateInterlude = async () => {
     await delay(interludeInitialDelay);
-    showSubtitleAnimation.start(({ finished }) => {
-      if (!finished) return;
-      announceLiveRegionUpdate(getInterludeAccessibilityLabel(interludeInitialStep));
-      void countDownAndHide();
-    });
+    if (!isMountedRef.current) return;
+    showSubtitleAnimation.start();
+    await delay(interludeAnimDuration);
+    if (!isMountedRef.current) return;
+    announceLiveRegionUpdate(getInterludeAccessibilityLabel(interludeInitialStep));
+    await countDownAndHide();
   };
 
   useOnMount(() => {

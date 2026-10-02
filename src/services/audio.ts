@@ -13,7 +13,9 @@ import { GuidedBreathingStep } from "@breathly/types/guided-breathing-step";
 const configureAudioMode = () =>
   setAudioModeAsync({
     playsInSilentMode: true,
-    shouldPlayInBackground: false,
+    // Android keeps the session running with the screen off (see `background-session`), and
+    // expo-audio would otherwise pause every cue the moment the activity leaves the screen.
+    shouldPlayInBackground: Platform.OS === "android",
     interruptionMode: Platform.OS === "android" ? "duckOthers" : "mixWithOthers",
   });
 

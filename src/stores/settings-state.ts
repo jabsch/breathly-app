@@ -37,9 +37,9 @@ export const maximumTimeLimitMs = ms("60 min");
 export const defaultSettingsState: PersistedSettingsState = {
   customPatternEnabled: false,
   customPatternSteps: [ms("4 sec"), ms("2 sec"), ms("4 sec"), ms("2 sec")],
-  selectedPatternPresetId: "square",
+  selectedPatternPresetId: "deep-calm",
   guidedBreathingVoice: "paul",
-  timeLimit: ms("2 min"),
+  timeLimit: ms("5 min"),
   shouldFollowSystemDarkMode: true,
   theme: "light",
   vibrationEnabled: true,
@@ -125,6 +125,26 @@ export const normalizePersistedSettingsState = (value: unknown): PersistedSettin
       typeof candidate.vibrationEnabled === "boolean"
         ? candidate.vibrationEnabled
         : defaultSettingsState.vibrationEnabled,
+  };
+};
+
+// Bumped whenever a stored payload needs `migratePersistedSettingsState`.
+export const persistedSettingsVersion = 1;
+
+// Version 1 made five minutes of 4-7-8 the default session, in place of two minutes of Square.
+// A payload that still holds both of the old defaults never changed them, so it moves to the
+// new ones; one that changed either keeps the user's choice.
+export const migratePersistedSettingsState = (persistedState: unknown, version: number) => {
+  if (version >= 1 || !isRecord(persistedState)) return persistedState;
+  const keptOldDefaults =
+    persistedState.customPatternEnabled !== true &&
+    persistedState.selectedPatternPresetId === "square" &&
+    persistedState.timeLimit === ms("2 min");
+  if (!keptOldDefaults) return persistedState;
+  return {
+    ...persistedState,
+    selectedPatternPresetId: defaultSettingsState.selectedPatternPresetId,
+    timeLimit: defaultSettingsState.timeLimit,
   };
 };
 

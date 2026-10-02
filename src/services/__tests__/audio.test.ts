@@ -95,7 +95,7 @@ describe("guided breathing audio", () => {
 
     expect(mockSetAudioModeAsync).toHaveBeenCalledWith({
       playsInSilentMode: true,
-      shouldPlayInBackground: false,
+      shouldPlayInBackground: true,
       interruptionMode: "duckOthers",
     });
     expect(mockAssetFromModule).toHaveBeenCalledTimes(4);

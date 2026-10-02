@@ -112,4 +112,41 @@ describe("settings persistence", () => {
     expect(useSettingsStore.getState().theme).toBe("light");
     expect(useSettingsStore.getState().timeLimit).toBe(0);
   });
+
+  it("moves a user who kept the old defaults to five minutes of 4-7-8", async () => {
+    mockGetItem.mockResolvedValue(
+      storedSettings({ selectedPatternPresetId: "square", timeLimit: 120_000, theme: "dark" }),
+    );
+
+    const useSettingsStore = await loadSettingsStore();
+
+    expect(useSettingsStore.getState().selectedPatternPresetId).toBe("deep-calm");
+    expect(useSettingsStore.getState().timeLimit).toBe(300_000);
+    expect(useSettingsStore.getState().theme).toBe("dark");
+  });
+
+  it("keeps a pattern or a time limit that the user chose", async () => {
+    mockGetItem.mockResolvedValue(
+      storedSettings({ selectedPatternPresetId: "square", timeLimit: 180_000 }),
+    );
+
+    const useSettingsStore = await loadSettingsStore();
+
+    expect(useSettingsStore.getState().selectedPatternPresetId).toBe("square");
+    expect(useSettingsStore.getState().timeLimit).toBe(180_000);
+  });
+
+  it("does not migrate a payload that is already current", async () => {
+    mockGetItem.mockResolvedValue(
+      JSON.stringify({
+        state: { ...defaultSettingsState, selectedPatternPresetId: "square", timeLimit: 120_000 },
+        version: 1,
+      }),
+    );
+
+    const useSettingsStore = await loadSettingsStore();
+
+    expect(useSettingsStore.getState().selectedPatternPresetId).toBe("square");
+    expect(useSettingsStore.getState().timeLimit).toBe(120_000);
+  });
 });

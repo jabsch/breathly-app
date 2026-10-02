@@ -12,6 +12,8 @@ import {
   adjustTimeLimit,
   defaultSettingsState,
   mergePersistedSettingsState,
+  migratePersistedSettingsState,
+  persistedSettingsVersion,
   setCustomPatternStepValue,
   timeLimitStepMs,
   type PersistedSettingsState,
@@ -113,6 +115,9 @@ export const useSettingsStore = create<SettingsStore>()(
       {
         name: "settings-storage",
         storage: settingsStorage,
+        version: persistedSettingsVersion,
+        migrate: (persistedState, version) =>
+          migratePersistedSettingsState(persistedState, version) as SettingsStore,
         merge: mergePersistedSettingsState,
       },
     ),
