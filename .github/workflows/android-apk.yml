@@ -1,0 +1,99 @@
+name: Android APK
+
+# Builds the release APK, smoke tests it on an Android 11 emulator, and publishes it as a
+# prerelease so it can be installed straight from GitHub.
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - claude/screen-off-timer-478-default-c3xlu9
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Generate the native Android project
+        run: npx expo prebuild --platform android --no-install --clean
+
+      # The generated project signs release builds with the debug key, which is enough to
+      # sideload. A Play Store build still goes through EAS.
+      - name: Build the release APK
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Name the APK
+        run: |
+          short_sha="$(git rev-parse --short HEAD)"
+          echo "SHORT_SHA=$short_sha" >> "$GITHUB_ENV"
+          cp android/app/build/outputs/apk/release/app-release.apk "breathly-$short_sha.apk"
+
+      - name: Keep the APK with the run
+        uses: actions/upload-artifact@v4
+        with:
+          name: breathly-apk
+          path: breathly-*.apk
+
+      - name: Enable KVM for the emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Install Maestro
+        run: |
+          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      - name: Smoke test on an Android 11 emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          script: bash scripts/android-smoke-test.sh "breathly-${{ env.SHORT_SHA }}.apk"
+
+      - name: Publish the APK as a prerelease
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-${{ env.SHORT_SHA }}
+          target_commitish: ${{ github.sha }}
+          name: Breathly test build ${{ env.SHORT_SHA }}
+          prerelease: true
+          body: |
+            Test build from `${{ github.ref_name }}` at ${{ github.sha }}. It passed the Android 11 emulator smoke test.
+
+            Install it on the phone by opening the APK and allowing installs from this source. It is signed with a debug key: if the Play Store version of Breathly is installed, uninstall it first.
+          files: breathly-${{ env.SHORT_SHA }}.apk
