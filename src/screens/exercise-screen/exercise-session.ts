@@ -6,13 +6,15 @@ export type ExerciseStatus = ResumableExerciseStatus | "paused" | "completed";
 export interface ExerciseSession {
   status: ExerciseStatus;
   resumeStatus?: ResumableExerciseStatus;
+  // True when the user paused, false when the app went to the background.
+  pausedByUser?: boolean;
   activeElapsedMs: number;
   currentStepIndex: number;
 }
 
 export type ExerciseSessionAction =
   | { type: "start" }
-  | { type: "pause"; activeElapsedMs: number }
+  | { type: "pause"; activeElapsedMs: number; byUser?: boolean }
   | { type: "resume" }
   | { type: "complete"; activeElapsedMs: number }
   | { type: "stepChanged"; stepIndex: number };
@@ -83,6 +85,7 @@ export const exerciseSessionReducer = (
           ...session,
           status: "paused",
           resumeStatus: "interlude",
+          pausedByUser: action.byUser ?? false,
         };
       }
       if (session.status !== "running") return session;
@@ -90,6 +93,7 @@ export const exerciseSessionReducer = (
         ...session,
         status: "paused",
         resumeStatus: "running",
+        pausedByUser: action.byUser ?? false,
         activeElapsedMs: Math.max(session.activeElapsedMs, action.activeElapsedMs),
       };
     case "resume":
@@ -99,12 +103,14 @@ export const exerciseSessionReducer = (
           ...session,
           status: "interlude",
           resumeStatus: undefined,
+          pausedByUser: undefined,
         };
       }
       return {
         ...session,
         status: "running",
         resumeStatus: undefined,
+        pausedByUser: undefined,
       };
     case "complete":
       if (session.status !== "running") return session;

@@ -10,6 +10,7 @@ import { useColorScheme, useThemeColors } from "@breathly/design/theme";
 import { fontFamilies, fontSizes } from "@breathly/design/typography";
 import { PlanetsBackground } from "@breathly/screens/home-screen/planets-background";
 import { StarsBackground } from "@breathly/screens/home-screen/stars-background";
+import { SaunaTimer } from "@breathly/screens/sauna/sauna-timer";
 
 export const useHomeScreenStatusStore = create<{
   isHomeScreenReady: boolean;
@@ -76,6 +77,7 @@ export const HomeScreen: FC<NativeStackScreenProps<RootStackParamList, "Home">> 
           Relax, focus on your breath, and find your inner peace.
         </Animated.Text>
       </View>
+      <SaunaTimer />
       <Pressable
         style={[styles.button, styles.startButton]}
         onPress={handleStartButtonPress}
@@ -94,14 +96,20 @@ export const HomeScreen: FC<NativeStackScreenProps<RootStackParamList, "Home">> 
       </Pressable>
       <Animated.Text style={[styles.separator, { color: theme.textSecondary }]}>or</Animated.Text>
       <Pressable
-        style={[styles.button, styles.customizeButton]}
+        style={[
+          styles.button,
+          styles.customizeButton,
+          // A pale slab glares on the night sky: in the dark the secondary action is an
+          // outline, so the warm start button stays the one thing that stands out.
+          colorScheme === "dark" && [styles.customizeButtonDark, { borderColor: theme.border }],
+        ]}
         onPress={handleCustomizeButtonPress}
         testID="home.customize"
         accessibilityRole="button"
       >
         <Text
           adjustsFontSizeToFit
-          style={styles.buttonLabel}
+          style={[styles.buttonLabel, colorScheme === "dark" && { color: theme.text }]}
           maxFontSizeMultiplier={1.2}
           minimumFontScale={0.85}
           numberOfLines={1}
@@ -133,6 +141,10 @@ const styles = StyleSheet.create({
   customizeButton: {
     backgroundColor: colors.pastel["gray-light"],
     marginBottom: 80,
+  },
+  customizeButtonDark: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
   },
   screen: {
     alignItems: "center",

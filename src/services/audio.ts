@@ -13,7 +13,9 @@ import { GuidedBreathingStep } from "@breathly/types/guided-breathing-step";
 const configureAudioMode = () =>
   setAudioModeAsync({
     playsInSilentMode: true,
-    shouldPlayInBackground: false,
+    // Android keeps the session running with the screen off (see `background-session`), and
+    // expo-audio would otherwise pause every cue the moment the activity leaves the screen.
+    shouldPlayInBackground: Platform.OS === "android",
     interruptionMode: Platform.OS === "android" ? "duckOthers" : "mixWithOthers",
   });
 
@@ -156,5 +158,20 @@ export const playEndingBellSound = async () => {
     if (player === endingBellSound) player?.play();
   } catch {
     // Completion must not fail because the optional ending bell could not play.
+  }
+};
+
+// The sauna alarm has a player of its own: it rings whether or not a breathing session is
+// running, and the session builds and releases its players as it comes and goes.
+let saunaAlarmSound: AudioPlayer | undefined;
+
+export const playSaunaAlarmSound = async () => {
+  try {
+    await configureAudioMode();
+    saunaAlarmSound ??= createAudioPlayer(await prepareAudioSource(sounds.endingBell));
+    await saunaAlarmSound.seekTo(0);
+    saunaAlarmSound.play();
+  } catch {
+    // The vibration still marks the end of the sauna time.
   }
 };

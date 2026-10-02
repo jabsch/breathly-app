@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# Smoke test of the release APK on a running emulator: launch, a session that survives the
+# screen turning off, the sauna timer next to it, and no crash along the way.
+set -euo pipefail
+
+apk="$1"
+package="com.mmazzarolo.breathly"
+
+adb install -r "$apk"
+adb logcat -c
+
+maestro test .maestro/flows/launch-and-exercise.yaml
+maestro test .maestro/smoke/start-breathing-and-sauna.yaml
+
+# The session counts down from five minutes. With the screen off for 40 seconds a timer that
+# kept running reads 04:20 or less; one that stopped would still read 04:30 or more.
+# (uiautomator cannot read the text itself: the breathing animation never lets it go idle.)
+adb shell input keyevent KEYCODE_SLEEP
+sleep 40
+
+if ! adb shell dumpsys activity services "$package" | grep -q BackgroundSessionService; then
+  echo "The background session service is not running with the screen off." >&2
+  exit 1
+fi
+
+adb shell input keyevent KEYCODE_WAKEUP
+adb shell wm dismiss-keyguard
+sleep 2
+
+maestro test .maestro/smoke/still-running.yaml
+maestro test .maestro/flows/background-resume.yaml
+
+if adb logcat -d -b crash | grep -q "$package"; then
+  adb logcat -d -b crash >&2
+  echo "The app crashed during the smoke test." >&2
+  exit 1
+fi
+
+echo "Smoke test passed."

@@ -13,6 +13,7 @@ import { formatTimer } from "@breathly/utils/format-timer";
 import { useInterval } from "@breathly/utils/use-interval";
 
 type Props = {
+  countsInBackground: boolean;
   limit: number;
   initialActiveElapsedMs: number;
   onActiveElapsedChange: (elapsedMs: number) => void;
@@ -26,6 +27,7 @@ const hideAnimDuration = 400;
 export const lastBreathLabel = "Last breath";
 
 export const Timer: FC<Props> = ({
+  countsInBackground,
   limit,
   initialActiveElapsedMs,
   onActiveElapsedChange,
@@ -44,7 +46,7 @@ export const Timer: FC<Props> = ({
     const activeTickDeltaMs = getActiveTickDeltaMs(
       previousTickAtMs.current,
       currentTickAtMs,
-      AppState.currentState !== "background",
+      countsInBackground || AppState.currentState !== "background",
       maximumActiveTickGapMs,
     );
     previousTickAtMs.current = currentTickAtMs;

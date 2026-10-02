@@ -13,22 +13,21 @@ name: Customize and persist settings
     visible:
       id: "settings.screen"
     timeout: 5000
-- assertVisible: ".*Square \\(4-4-4-4\\).*"
+- assertVisible: ".*Deep Calm \\(4-7-8-0\\).*"
 - tapOn:
     id: "settings.pattern"
 - assertVisible:
     id: "settings.patterns.screen"
 - tapOn:
-    id: "settings.pattern.deep-calm"
+    id: "settings.pattern.square"
 - runFlow:
     file: ../subflows/return-from-patterns.yaml
-- assertVisible: ".*Deep Calm \\(4-7-8-0\\).*"
+- assertVisible: ".*Square \\(4-4-4-4\\).*"
 - runFlow:
     file: ../subflows/set-disabled-voice.yaml
-- tapOn:
-    id: "settings.system-theme"
+# The app starts in the dark theme; switch to light and check that it sticks.
 - runFlow:
-    file: ../subflows/set-dark-theme.yaml
+    file: ../subflows/set-light-theme.yaml
 - tapOn:
     id: "settings.vibration"
 - scrollUntilVisible:
@@ -53,13 +52,13 @@ name: Customize and persist settings
     visible:
       id: "settings.screen"
     timeout: 5000
-- assertVisible: ".*Deep Calm \\(4-7-8-0\\).*"
+- assertVisible: ".*Square \\(4-4-4-4\\).*"
 - assertVisible: ".*Disabled.*"
-- assertVisible: ".*Dark theme.*"
+- assertVisible: ".*Light theme.*"
 - scrollUntilVisible:
     element:
       id: "settings.timer.value"
     direction: DOWN
 - assertVisible:
     id: "settings.timer.value"
-    text: "3"
+    text: "6"

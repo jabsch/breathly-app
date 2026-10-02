@@ -13,11 +13,17 @@ name: Exercise completes after the last exhale
     visible:
       id: "settings.screen"
     timeout: 5000
-# The default limit of two minutes makes this flow unnecessarily slow.
+# The default limit of five minutes makes this flow unnecessarily slow.
 - scrollUntilVisible:
     element:
       id: "settings.timer.decrease"
     direction: DOWN
+- tapOn:
+    id: "settings.timer.decrease"
+- tapOn:
+    id: "settings.timer.decrease"
+- tapOn:
+    id: "settings.timer.decrease"
 - tapOn:
     id: "settings.timer.decrease"
 - assertVisible:
@@ -32,9 +38,10 @@ name: Exercise completes after the last exhale
       id: "exercise.running"
     timeout: 8000
 # The time limit does not stop the exercise immediately: the exercise continues
-# to the end of the current exhale. With the default pattern this adds a maximum
-# of twelve seconds to the minute of the time limit. The timeout is much longer,
-# because a slow emulator makes the exercise clock run behind the real time.
+# to the end of the current exhale. With the default 4-7-8 pattern this adds a
+# maximum of nineteen seconds to the minute of the time limit. The timeout is
+# much longer, because a slow emulator makes the exercise clock run behind the
+# real time.
 - extendedWaitUntil:
     visible:
       id: "exercise.complete"

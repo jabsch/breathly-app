@@ -3,6 +3,7 @@ import React, { FC, useEffect } from "react";
 import { Appearance, Platform, UIManager, View, LayoutAnimation } from "react-native";
 import { fonts as fontAssets } from "@breathly/assets/fonts";
 import { Navigator } from "@breathly/core/navigator";
+import { SaunaTimerController } from "@breathly/screens/sauna/sauna-timer-controller";
 import { useHydration, useSettingsStore } from "@breathly/stores/settings";
 import {
   initializeImmersiveMode,
@@ -48,7 +49,8 @@ const Main: FC = () => {
   // the system. It changes the app's appearance only, never the system's.
   useEffect(() => {
     if (!hydrated) return;
-    Appearance.setColorScheme(shouldFollowSystemDarkMode ? "unspecified" : theme);
+    // react-native-web has no `setColorScheme`; the web theme comes from the settings store alone.
+    Appearance.setColorScheme?.(shouldFollowSystemDarkMode ? "unspecified" : theme);
   }, [hydrated, shouldFollowSystemDarkMode, theme]);
 
   // Animate the layout when the stored theme arrives, and on every later change.
@@ -67,5 +69,10 @@ const Main: FC = () => {
     return <View />;
   }
 
-  return <Navigator />;
+  return (
+    <>
+      <Navigator />
+      <SaunaTimerController />
+    </>
+  );
 };

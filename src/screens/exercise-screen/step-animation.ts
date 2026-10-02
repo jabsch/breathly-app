@@ -27,8 +27,7 @@ export const createStepAnimation = ({
   const textAnimDurationMs = getTextAnimDurationMs(durationMs);
   // `stopTogether` stays at its default. The ratio above already keeps the two fades inside
   // the step, so nothing interrupts the circle and the flag has no work to do — but it would
-  // make an interrupted circle report `finished: true`, and `loopAnimations` would then step
-  // on forever with a frozen circle instead of stopping. A loud failure is the right one here.
+  // make an interrupted circle report `finished: true`, which hides the interruption.
   return Animated.stagger(Math.max(0, durationMs - textAnimDurationMs), [
     Animated.parallel([
       animate(exerciseAnimVal, {

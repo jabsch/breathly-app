@@ -39,7 +39,7 @@ tags:
     when:
       platform: iOS
     commands:
-      - tapOn: ".*Pattern.*Square \\(4-4-4-4\\).*"
+      - tapOn: ".*Pattern.*Deep Calm \\(4-7-8-0\\).*"
 - extendedWaitUntil:
     visible: "Pattern presets"
     timeout: 5000

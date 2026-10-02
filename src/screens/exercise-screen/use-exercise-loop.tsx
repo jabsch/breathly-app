@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Animated } from "react-native";
 import { createStepAnimation } from "@breathly/screens/exercise-screen/step-animation";
+import { loopSteps } from "@breathly/screens/exercise-screen/step-loop";
 import { StepMetadata } from "@breathly/types/step-metadata";
-import { loopAnimations } from "@breathly/utils/loop-animations";
 
 export const useExerciseLoop = (
   stepsMetadata: [StepMetadata, StepMetadata, StepMetadata, StepMetadata],
@@ -31,20 +31,27 @@ export const useExerciseLoop = (
   );
 
   useEffect(() => {
-    const createStepAnimations = () =>
-      activeSteps.map((x) =>
-        animateStep(x.id === "inhale" || x.id === "afterInhale" ? 1 : 0, x.duration),
-      );
-    const cleanupExerciseLoop = loopAnimations(
-      createStepAnimations,
+    let stepAnimation: Animated.CompositeAnimation | undefined;
+    // The clock drives the steps; the animation of each step only follows it.
+    const stopExerciseLoop = loopSteps(
+      activeSteps.map((step) => step.duration),
       (stepIndex: number) => {
+        const step = activeSteps[stepIndex];
+        if (!step) return;
+        stepAnimation?.stop();
+        stepAnimation = animateStep(
+          step.id === "inhale" || step.id === "afterInhale" ? 1 : 0,
+          step.duration,
+        );
+        stepAnimation.start();
         setCurrentStepIndex(stepIndex);
         onStepStart(stepIndex);
       },
       initialStepIndexRef.current,
     );
     return () => {
-      cleanupExerciseLoop();
+      stopExerciseLoop();
+      stepAnimation?.stop();
     };
   }, [activeSteps, animateStep, onStepStart]);
 

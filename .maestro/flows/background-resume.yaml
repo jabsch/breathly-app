@@ -1,5 +1,5 @@
 appId: com.mmazzarolo.breathly
-name: Pause exercise while backgrounded
+name: Background a running exercise
 ---
 - clearState
 - launchApp
@@ -16,17 +16,34 @@ name: Pause exercise while backgrounded
 - pressKey: home
 - launchApp:
     stopApp: false
-- extendedWaitUntil:
-    visible:
-      id: "exercise.paused"
-    timeout: 5000
-- assertVisible: "Paused"
-- tapOn:
-    id: "exercise.resume"
-- extendedWaitUntil:
-    visible:
-      id: "exercise.running"
-    timeout: 5000
+# Android keeps the session running in a foreground service, so the screen can turn off
+# without stopping the cues.
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - extendedWaitUntil:
+          visible:
+            id: "exercise.running"
+          timeout: 5000
+      - assertNotVisible:
+          id: "exercise.paused"
+# iOS pauses the session in the background.
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - extendedWaitUntil:
+          visible:
+            id: "exercise.paused"
+          timeout: 5000
+      - assertVisible: "Paused"
+      - tapOn:
+          id: "exercise.resume"
+      - extendedWaitUntil:
+          visible:
+            id: "exercise.running"
+          timeout: 5000
 - tapOn:
     id: "exercise.close"
 - extendedWaitUntil:

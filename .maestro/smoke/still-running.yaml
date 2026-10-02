@@ -1,0 +1,42 @@
+appId: com.mmazzarolo.breathly
+name: Breathing session and sauna timer are still running
+---
+- assertVisible:
+    id: "exercise.running"
+- assertNotVisible:
+    id: "exercise.paused"
+- assertVisible:
+    id: "sauna.pause"
+# 40 seconds with the screen off: the five-minute countdown must be below 04:30 by now.
+- assertVisible:
+    id: "exercise.timer"
+    text: "04:[0-2][0-9]|0[0-3]:[0-5][0-9]"
+# The two pause on their own: pausing the breathing leaves the sauna running.
+- tapOn:
+    id: "exercise.pause"
+- extendedWaitUntil:
+    visible:
+      id: "exercise.paused"
+    timeout: 5000
+- assertVisible:
+    id: "sauna.pause"
+- tapOn:
+    id: "sauna.pause"
+- assertVisible:
+    id: "sauna.resume"
+- tapOn:
+    id: "exercise.resume"
+- extendedWaitUntil:
+    visible:
+      id: "exercise.running"
+    timeout: 5000
+- assertVisible:
+    id: "sauna.resume"
+- tapOn:
+    id: "sauna.stop"
+- tapOn:
+    id: "exercise.close"
+- extendedWaitUntil:
+    visible:
+      id: "home.screen"
+    timeout: 5000

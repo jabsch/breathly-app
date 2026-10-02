@@ -15,6 +15,7 @@ export interface PersistedSettingsState {
   shouldFollowSystemDarkMode: boolean;
   theme: Theme;
   vibrationEnabled: boolean;
+  saunaTimeLimit: number;
 }
 
 // A tuple, not an array: `normalizePersistedSettingsState` maps over this to build the four
@@ -33,16 +34,20 @@ export const customPatternDurationLimits: [
 export const customPatternStepSizeMs = ms("0.5 sec");
 export const timeLimitStepMs = ms("1 min");
 export const maximumTimeLimitMs = ms("60 min");
+export const minimumSaunaTimeLimitMs = ms("1 min");
+export const maximumSaunaTimeLimitMs = ms("60 min");
 
 export const defaultSettingsState: PersistedSettingsState = {
   customPatternEnabled: false,
   customPatternSteps: [ms("4 sec"), ms("2 sec"), ms("4 sec"), ms("2 sec")],
-  selectedPatternPresetId: "square",
+  selectedPatternPresetId: "deep-calm",
   guidedBreathingVoice: "paul",
-  timeLimit: ms("2 min"),
-  shouldFollowSystemDarkMode: true,
-  theme: "light",
+  timeLimit: ms("5 min"),
+  // Dark by default; light stays one tap away in the settings.
+  shouldFollowSystemDarkMode: false,
+  theme: "dark",
   vibrationEnabled: true,
+  saunaTimeLimit: ms("15 min"),
 };
 
 const guidedBreathingModes: GuidedBreathingMode[] = ["laura", "paul", "bell", "disabled"];
@@ -76,6 +81,14 @@ export const setCustomPatternStepValue = (
 export const adjustTimeLimit = (timeLimit: number, deltaMs: number) =>
   clampFiniteNumber(timeLimit + deltaMs, 0, maximumTimeLimitMs, defaultSettingsState.timeLimit);
 
+export const adjustSaunaTimeLimit = (saunaTimeLimit: number, deltaMs: number) =>
+  clampFiniteNumber(
+    saunaTimeLimit + deltaMs,
+    minimumSaunaTimeLimitMs,
+    maximumSaunaTimeLimitMs,
+    defaultSettingsState.saunaTimeLimit,
+  );
+
 export const normalizePersistedSettingsState = (value: unknown): PersistedSettingsState => {
   const candidate = isRecord(value) ? value : {};
   const candidateSteps = Array.isArray(candidate.customPatternSteps)
@@ -100,7 +113,9 @@ export const normalizePersistedSettingsState = (value: unknown): PersistedSettin
     ? (candidate.guidedBreathingVoice as GuidedBreathingMode)
     : defaultSettingsState.guidedBreathingVoice;
   const theme =
-    candidate.theme === "dark" || candidate.theme === "light" ? candidate.theme : "light";
+    candidate.theme === "dark" || candidate.theme === "light"
+      ? candidate.theme
+      : defaultSettingsState.theme;
 
   return {
     customPatternEnabled:
@@ -125,6 +140,32 @@ export const normalizePersistedSettingsState = (value: unknown): PersistedSettin
       typeof candidate.vibrationEnabled === "boolean"
         ? candidate.vibrationEnabled
         : defaultSettingsState.vibrationEnabled,
+    saunaTimeLimit: clampFiniteNumber(
+      candidate.saunaTimeLimit,
+      minimumSaunaTimeLimitMs,
+      maximumSaunaTimeLimitMs,
+      defaultSettingsState.saunaTimeLimit,
+    ),
+  };
+};
+
+// Bumped whenever a stored payload needs `migratePersistedSettingsState`.
+export const persistedSettingsVersion = 1;
+
+// Version 1 made five minutes of 4-7-8 the default session, in place of two minutes of Square.
+// A payload that still holds both of the old defaults never changed them, so it moves to the
+// new ones; one that changed either keeps the user's choice.
+export const migratePersistedSettingsState = (persistedState: unknown, version: number) => {
+  if (version >= 1 || !isRecord(persistedState)) return persistedState;
+  const keptOldDefaults =
+    persistedState.customPatternEnabled !== true &&
+    persistedState.selectedPatternPresetId === "square" &&
+    persistedState.timeLimit === ms("2 min");
+  if (!keptOldDefaults) return persistedState;
+  return {
+    ...persistedState,
+    selectedPatternPresetId: defaultSettingsState.selectedPatternPresetId,
+    timeLimit: defaultSettingsState.timeLimit,
   };
 };
 

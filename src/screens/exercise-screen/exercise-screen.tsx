@@ -28,7 +28,13 @@ import { useExerciseAudio } from "@breathly/screens/exercise-screen/use-exercise
 import { useExerciseHaptics } from "@breathly/screens/exercise-screen/use-exercise-haptics";
 import { useExerciseLoop } from "@breathly/screens/exercise-screen/use-exercise-loop";
 import { StarsBackground } from "@breathly/screens/home-screen/stars-background";
-import { useSelectedPatternSteps, useSettingsStore } from "@breathly/stores/settings";
+import { SaunaTimer } from "@breathly/screens/sauna/sauna-timer";
+import { useBackgroundSession } from "@breathly/services/background-session";
+import {
+  useSelectedPatternName,
+  useSelectedPatternSteps,
+  useSettingsStore,
+} from "@breathly/stores/settings";
 import { GuidedBreathingMode } from "@breathly/types/guided-breathing-mode";
 import { StepMetadata } from "@breathly/types/step-metadata";
 import { animate } from "@breathly/utils/animate";
@@ -43,6 +49,9 @@ import { Timer } from "./timer";
 // The voice that the exercise uses for a user of a screen reader who disabled
 // it. It is the default voice of the app.
 const screenReaderFallbackVoice: GuidedBreathingMode = "paul";
+
+// The ending bell lasts about six seconds.
+const endingBellHoldMs = 8000;
 
 export const ExerciseScreen: FC<NativeStackScreenProps<RootStackParamList, "Exercise">> = ({
   navigation,
@@ -71,7 +80,28 @@ export const ExerciseScreen: FC<NativeStackScreenProps<RootStackParamList, "Exer
     effectiveGuidedBreathingVoice,
   );
 
+  // On Android the session keeps running, cues included, while the screen is off or another
+  // app is in front. Elsewhere, or if Android refused the service, it pauses in the background.
+  const selectedPatternName = useSelectedPatternName();
+  const [endingBellFinished, setEndingBellFinished] = useState(false);
+  const continuesInBackground = useBackgroundSession(
+    session.status === "interlude" ||
+      session.status === "running" ||
+      // The bell rings on after the session completes: releasing the wake lock with the
+      // screen off would cut it short.
+      (session.status === "completed" && !endingBellFinished),
+    `${selectedPatternName} session in progress`,
+  );
+
   useEffect(() => {
+    if (session.status !== "completed") return;
+    const timeout = setTimeout(() => setEndingBellFinished(true), endingBellHoldMs);
+    return () => clearTimeout(timeout);
+  }, [session.status]);
+
+  useEffect(() => {
+    if (continuesInBackground) return;
+
     const subscription = AppState.addEventListener("change", (nextAppState) => {
       // iOS reports "inactive" for the Control Center, the Notification Center,
       // the app switcher and the banner of an incoming call. The app stays on
@@ -91,7 +121,7 @@ export const ExerciseScreen: FC<NativeStackScreenProps<RootStackParamList, "Exer
     });
 
     return () => subscription.remove();
-  }, [stopExerciseAudio]);
+  }, [continuesInBackground, stopExerciseAudio]);
 
   const handleInterludeComplete = useCallback(() => {
     dispatchSession({ type: "start" });
@@ -117,6 +147,11 @@ export const ExerciseScreen: FC<NativeStackScreenProps<RootStackParamList, "Exer
     activeElapsedMs.current = elapsedMs;
   }, []);
 
+  const handlePause = useCallback(() => {
+    stopExerciseAudio();
+    dispatchSession({ type: "pause", activeElapsedMs: activeElapsedMs.current, byUser: true });
+  }, [stopExerciseAudio]);
+
   const handleResume = useCallback(() => {
     dispatchSession({ type: "resume" });
   }, []);
@@ -135,6 +170,9 @@ export const ExerciseScreen: FC<NativeStackScreenProps<RootStackParamList, "Exer
         },
       ]}
     >
+      <View style={styles.saunaRow}>
+        <SaunaTimer hideWhenIdle />
+      </View>
       {session.status === "interlude" && <ExerciseInterlude onComplete={handleInterludeComplete} />}
       {session.status === "running" && (
         <>
@@ -142,6 +180,7 @@ export const ExerciseScreen: FC<NativeStackScreenProps<RootStackParamList, "Exer
             <StarsBackground size={widestDeviceDimension * 0.8} fadeIn={true} />
           )}
           <ExerciseRunningFragment
+            continuesInBackground={continuesInBackground}
             onComplete={handleExerciseComplete}
             onStepChange={handleExerciseStepChange}
             onStepIndexChange={handleStepIndexChange}
@@ -152,7 +191,11 @@ export const ExerciseScreen: FC<NativeStackScreenProps<RootStackParamList, "Exer
         </>
       )}
       {session.status === "paused" && (
-        <ExercisePaused resumeStatus={session.resumeStatus} onResume={handleResume} />
+        <ExercisePaused
+          resumeStatus={session.resumeStatus}
+          pausedByUser={session.pausedByUser ?? false}
+          onResume={handleResume}
+        />
       )}
       {session.status === "completed" && <ExerciseComplete />}
       {/* The countdown and the paused screen need the display awake as much as the exercise
@@ -161,6 +204,17 @@ export const ExerciseScreen: FC<NativeStackScreenProps<RootStackParamList, "Exer
           there would keep it lit until the user came back to the phone. */}
       {session.status !== "completed" && <KeepDisplayAwake />}
       <View style={styles.closeButtonRow}>
+        {(session.status === "interlude" || session.status === "running") && (
+          <Pressable
+            style={[styles.closeButton, { borderColor: theme.control }]}
+            onPress={handlePause}
+            testID="exercise.pause"
+            accessibilityLabel="Pause breathing session"
+            accessibilityRole="button"
+          >
+            <Ionicons name="pause" size={22} color={theme.control} />
+          </Pressable>
+        )}
         <Pressable
           style={[styles.closeButton, { borderColor: theme.control }]}
           onPress={navigation.goBack}
@@ -182,6 +236,7 @@ const KeepDisplayAwake: FC = () => {
 };
 
 interface ExerciseRunningFragmentProps {
+  continuesInBackground: boolean;
   onComplete: () => unknown;
   onStepChange: (stepMetadata: StepMetadata) => unknown;
   onStepIndexChange: (stepIndex: number) => void;
@@ -193,6 +248,7 @@ interface ExerciseRunningFragmentProps {
 const unmountAnimDuration = 300;
 
 const ExerciseRunningFragment: FC<ExerciseRunningFragmentProps> = ({
+  continuesInBackground,
   onComplete,
   onStepChange,
   onStepIndexChange,
@@ -222,17 +278,19 @@ const ExerciseRunningFragment: FC<ExerciseRunningFragmentProps> = ({
   const timeLimitReachedRef = useRef(false);
   const completionStartedRef = useRef(false);
 
+  // The fade is only visual. Android runs no animation frames while the screen is off, so a
+  // completion that waited for the fade to finish would never ring the ending bell there.
+  const completionTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(completionTimeoutRef.current), []);
+
   const startCompletion = () => {
     if (completionStartedRef.current) return;
     completionStartedRef.current = true;
     animate(unmountContentAnimVal, {
       toValue: 0,
       duration: unmountAnimDuration,
-    }).start(({ finished }) => {
-      if (finished) {
-        onComplete();
-      }
-    });
+    }).start();
+    completionTimeoutRef.current = setTimeout(onComplete, unmountAnimDuration);
   };
 
   useOnUpdate(
@@ -271,6 +329,7 @@ const ExerciseRunningFragment: FC<ExerciseRunningFragmentProps> = ({
   return (
     <Animated.View style={[styles.runningContent, contentAnimatedStyle]} testID="exercise.running">
       <Timer
+        countsInBackground={continuesInBackground}
         limit={timeLimit}
         initialActiveElapsedMs={initialActiveElapsedMs}
         onActiveElapsedChange={onActiveElapsedChange}
@@ -297,10 +356,11 @@ const ExerciseRunningFragment: FC<ExerciseRunningFragmentProps> = ({
 
 interface ExercisePausedProps {
   resumeStatus?: ResumableExerciseStatus;
+  pausedByUser: boolean;
   onResume: () => void;
 }
 
-const ExercisePaused: FC<ExercisePausedProps> = ({ resumeStatus, onResume }) => {
+const ExercisePaused: FC<ExercisePausedProps> = ({ resumeStatus, pausedByUser, onResume }) => {
   const isDarkMode = useColorScheme() === "dark";
   const theme = useThemeColors();
 
@@ -319,9 +379,11 @@ const ExercisePaused: FC<ExercisePausedProps> = ({ resumeStatus, onResume }) => 
         Paused
       </Text>
       <Text style={[styles.pausedDescription, { color: theme.textSecondary }]}>
-        {resumeStatus === "interlude"
-          ? "The starting countdown was interrupted."
-          : "The session paused while Breathly was in the background."}
+        {pausedByUser
+          ? "Take your time. The session continues where you left off."
+          : resumeStatus === "interlude"
+            ? "The starting countdown was interrupted."
+            : "The session paused while Breathly was in the background."}
       </Text>
       <Pressable
         accessibilityRole="button"
@@ -337,6 +399,10 @@ const ExercisePaused: FC<ExercisePausedProps> = ({ resumeStatus, onResume }) => 
 };
 
 const styles = StyleSheet.create({
+  saunaRow: {
+    alignItems: "center",
+    paddingTop: 8,
+  },
   closeButton: {
     alignItems: "center",
     borderRadius: 9999,
@@ -347,6 +413,8 @@ const styles = StyleSheet.create({
   },
   closeButtonRow: {
     alignItems: "center",
+    flexDirection: "row",
+    gap: 24,
     justifyContent: "center",
     paddingBottom: 40,
     paddingTop: 24,
@@ -385,6 +453,7 @@ const styles = StyleSheet.create({
   resumeButtonLabel: {
     ...fontSizes.lg,
     color: colors["slate-800"],
+    fontFamily: fontFamilies.regular,
     paddingVertical: 4,
   },
   runningContent: {

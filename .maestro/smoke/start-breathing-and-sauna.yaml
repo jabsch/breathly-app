@@ -1,0 +1,23 @@
+appId: com.mmazzarolo.breathly
+name: Start a breathing session and the sauna timer
+---
+- clearState
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: "home.screen"
+    timeout: 10000
+# The new defaults: five minutes of 4-7-8, and fifteen minutes of sauna.
+- assertVisible:
+    id: "sauna.value"
+    text: "15 min"
+- tapOn:
+    id: "sauna.start"
+- tapOn:
+    id: "home.start-session"
+- extendedWaitUntil:
+    visible:
+      id: "exercise.running"
+    timeout: 15000
+- assertVisible:
+    id: "sauna.pause"

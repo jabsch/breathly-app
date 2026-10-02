@@ -1,4 +1,5 @@
 import {
+  adjustSaunaTimeLimit,
   adjustTimeLimit,
   customPatternDurationLimits,
   defaultSettingsState,
@@ -77,5 +78,14 @@ describe("settings state", () => {
     const steps = defaultSettingsState.customPatternSteps;
     expect(setCustomPatternStepValue(steps, 0, 0)[0]).toBe(customPatternDurationLimits[0]![0]);
     expect(setCustomPatternStepValue(steps, 4, 5_000)).toBe(steps);
+  });
+
+  it("defaults the sauna timer to fifteen minutes and keeps it between one and sixty", () => {
+    expect(defaultSettingsState.saunaTimeLimit).toBe(15 * 60_000);
+    expect(adjustSaunaTimeLimit(15 * 60_000, 60_000)).toBe(16 * 60_000);
+    expect(adjustSaunaTimeLimit(60_000, -60_000)).toBe(60_000);
+    expect(adjustSaunaTimeLimit(60 * 60_000, 60_000)).toBe(60 * 60_000);
+    expect(normalizePersistedSettingsState({ saunaTimeLimit: 0 }).saunaTimeLimit).toBe(60_000);
+    expect(normalizePersistedSettingsState({}).saunaTimeLimit).toBe(15 * 60_000);
   });
 });
