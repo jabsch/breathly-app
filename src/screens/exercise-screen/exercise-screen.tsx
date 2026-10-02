@@ -453,6 +453,7 @@ const styles = StyleSheet.create({
   resumeButtonLabel: {
     ...fontSizes.lg,
     color: colors["slate-800"],
+    fontFamily: fontFamilies.regular,
     paddingVertical: 4,
   },
   runningContent: {

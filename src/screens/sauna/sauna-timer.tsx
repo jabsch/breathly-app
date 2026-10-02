@@ -51,53 +51,68 @@ export const SaunaTimer: FC<Props> = ({ hideWhenIdle = false }) => {
 
   return (
     <View
-      style={[styles.card, { borderColor: theme.border }]}
+      // An opaque card, so the stars of the session screen do not show through the text.
+      style={[styles.card, { backgroundColor: theme.background, borderColor: theme.border }]}
       testID="sauna.timer"
       accessibilityLabel={`Sauna timer, ${valueText}`}
     >
-      <Ionicons name="flame-outline" size={22} color={theme.control} />
-      <Text style={[styles.label, { color: theme.textSecondary }]}>Sauna</Text>
-      {timer.status === "idle" && (
-        <IconButton
-          icon="remove"
-          label="Shorter sauna time"
-          testID="sauna.decrease"
-          onPress={decreaseSaunaTimeLimit}
-          disabled={saunaTimeLimit <= minimumSaunaTimeLimitMs}
-        />
-      )}
-      <Text style={[styles.text, { color: theme.text }]} testID="sauna.value">
-        {valueText}
-      </Text>
-      {timer.status === "idle" && (
-        <IconButton
-          icon="add"
-          label="Longer sauna time"
-          testID="sauna.increase"
-          onPress={increaseSaunaTimeLimit}
-          disabled={saunaTimeLimit >= maximumSaunaTimeLimitMs}
-        />
-      )}
-      {timer.status === "running" && (
-        <IconButton icon="pause" label="Pause sauna timer" testID="sauna.pause" onPress={pause} />
-      )}
-      {timer.status === "paused" && (
-        <IconButton icon="play" label="Resume sauna timer" testID="sauna.resume" onPress={resume} />
-      )}
-      {timer.status !== "idle" && (
-        <IconButton icon="stop" label="Stop sauna timer" testID="sauna.stop" onPress={stop} />
-      )}
-      {(timer.status === "idle" || timer.status === "finished") && (
-        <Pressable
-          onPress={() => start(saunaTimeLimit)}
-          accessibilityRole="button"
-          accessibilityLabel="Start sauna timer"
-          testID="sauna.start"
-          style={styles.startButton}
+      <View style={styles.header}>
+        <Ionicons name="flame-outline" size={16} color={theme.textSecondary} />
+        <Text style={[styles.label, { color: theme.textSecondary }]}>Sauna timer</Text>
+      </View>
+      <View style={styles.controls}>
+        {timer.status === "idle" && (
+          <IconButton
+            icon="remove"
+            label="Shorter sauna time"
+            testID="sauna.decrease"
+            onPress={decreaseSaunaTimeLimit}
+            disabled={saunaTimeLimit <= minimumSaunaTimeLimitMs}
+          />
+        )}
+        <Text
+          style={[styles.text, { color: theme.text }]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          testID="sauna.value"
         >
-          <Text style={styles.startLabel}>{timer.status === "finished" ? "Again" : "Start"}</Text>
-        </Pressable>
-      )}
+          {valueText}
+        </Text>
+        {timer.status === "idle" && (
+          <IconButton
+            icon="add"
+            label="Longer sauna time"
+            testID="sauna.increase"
+            onPress={increaseSaunaTimeLimit}
+            disabled={saunaTimeLimit >= maximumSaunaTimeLimitMs}
+          />
+        )}
+        {timer.status === "running" && (
+          <IconButton icon="pause" label="Pause sauna timer" testID="sauna.pause" onPress={pause} />
+        )}
+        {timer.status === "paused" && (
+          <IconButton
+            icon="play"
+            label="Resume sauna timer"
+            testID="sauna.resume"
+            onPress={resume}
+          />
+        )}
+        {timer.status !== "idle" && (
+          <IconButton icon="stop" label="Stop sauna timer" testID="sauna.stop" onPress={stop} />
+        )}
+        {(timer.status === "idle" || timer.status === "finished") && (
+          <Pressable
+            onPress={() => start(saunaTimeLimit)}
+            accessibilityRole="button"
+            accessibilityLabel="Start sauna timer"
+            testID="sauna.start"
+            style={styles.startButton}
+          >
+            <Text style={styles.startLabel}>{timer.status === "finished" ? "Again" : "Start"}</Text>
+          </Pressable>
+        )}
+      </View>
     </View>
   );
 };
@@ -130,16 +145,24 @@ const IconButton: FC<IconButtonProps> = ({ icon, label, testID, onPress, disable
 
 const styles = StyleSheet.create({
   card: {
-    alignItems: "center",
     borderRadius: 8,
     borderWidth: 1,
-    flexDirection: "row",
-    gap: 8,
+    gap: 4,
     marginBottom: 24,
     maxWidth: 320,
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 8,
     width: 288,
+  },
+  controls: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 8,
+  },
+  header: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 6,
   },
   disabled: {
     opacity: 0.4,
@@ -151,7 +174,7 @@ const styles = StyleSheet.create({
     width: 32,
   },
   label: {
-    ...fontSizes.base,
+    ...fontSizes.sm,
     fontFamily: fontFamilies.regular,
   },
   text: {
