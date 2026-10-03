@@ -1,0 +1,18 @@
+{
+  "rule": "Each message from a person that asks or requests something covered by a question adds 1 to that question. Sources: the project chat and its threads, and issues and discussions on jabsch/breathly-app. Only messages after countedThrough are new.",
+  "countedThrough": "2026-10-03T15:44:24Z",
+  "questions": {
+    "where-do-i-get-the-apk-and-how-do-i-install-it": 3,
+    "does-the-app-use-dark-mode": 2,
+    "how-was-it-tested": 2,
+    "does-the-session-keep-going-when-the-screen-is-off": 1,
+    "what-is-the-default-session": 1,
+    "how-does-the-sauna-timer-work": 1,
+    "can-i-pause-the-two-timers-separately": 1,
+    "what-is-the-best-way-to-share-it-with-other-people": 1,
+    "should-it-be-renamed": 1,
+    "why-does-the-app-ask-to-send-notifications": 0,
+    "does-this-work-on-iphone": 0,
+    "what-does-the-license-allow": 0
+  }
+}

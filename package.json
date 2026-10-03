@@ -22,7 +22,9 @@
     "e2e:build:ios": "expo run:ios --configuration Release --no-bundler",
     "visual:capture": "bash scripts/visual-e2e/capture-installed.sh",
     "visual:compare": "node scripts/visual-e2e/compare.mjs",
-    "validate:static": "bun run typecheck && bun run lint && bun run format:check && bun run test",
+    "faq:sort": "node scripts/faq/sort-faq.mjs",
+    "faq:check": "node scripts/faq/sort-faq.mjs --check",
+    "validate:static": "bun run typecheck && bun run lint && bun run format:check && bun run faq:check && bun run test",
     "validate:expo": "expo install --check && expo-doctor",
     "validate:bundles": "expo export --platform all --output-dir dist/validate-export --clear",
     "validate": "bun run validate:static && bun run validate:expo"

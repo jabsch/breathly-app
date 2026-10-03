@@ -39,6 +39,11 @@ You can use Breathly for daily relaxation and breath training: just choose a bre
   <a href="https://www.producthunt.com/posts/breathly?utm_source=badge-featured&utm_medium=badge&utm_souce=badge-breathly" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=290679&theme=light" alt="Breathly - Open-source breath training and relaxation app | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
 </p>
 
+## FAQ
+
+Questions about this fork's screen-off timers, the 4-7-8 default, the sauna timer, dark mode,
+installing the test APK and sharing the app are answered in the [FAQ](./docs/FAQ.md).
+
 ## Overview
 
 In this repository you'll find the source code of the Breathly mobile app.
