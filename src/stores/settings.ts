@@ -7,34 +7,38 @@ import {
   type PersistStorage,
   type StorageValue,
 } from "zustand/middleware";
-import { patternPresets } from "@breathly/assets/pattern-presets";
 import {
-  adjustSaunaTimeLimit,
   adjustTimeLimit,
+  adjustTimerDuration,
+  adjustVolume,
   defaultSettingsState,
   mergePersistedSettingsState,
   migratePersistedSettingsState,
+  normalizeExperienceSettings,
   persistedSettingsVersion,
-  setCustomPatternStepValue,
   timeLimitStepMs,
+  type OtherAudioMode,
   type PersistedSettingsState,
   type Theme,
 } from "@breathly/stores/settings-state";
-import { GuidedBreathingMode } from "@breathly/types/guided-breathing-mode";
+import type { ExperienceSettings } from "@breathly/types/experience";
 import { delay } from "@breathly/utils/delay";
+import { createExperienceId } from "@breathly/utils/experience";
+
+export type CueType = "voice" | "beep";
 
 interface SettingsStore extends PersistedSettingsState {
-  setCustomPatternEnabled: (enabled: boolean) => unknown;
-  setCustomPatternStep: (stepIndex: number, stepValue: number) => unknown;
-  setSelectedPatternPresetId: (patternPresetId: string) => unknown;
-  setGuidedBreathingVoice: (guidedBreathingVoice: GuidedBreathingMode) => unknown;
-  increaseTimeLimit: () => unknown;
-  decreaseTimeLimit: () => unknown;
+  // Adds a new experience when `id` is undefined. Returns the id it was saved under.
+  saveExperience: (id: string | undefined, settings: ExperienceSettings) => string;
+  deleteExperience: (id: string) => unknown;
+  // One step of the time on a card: the session length of a breathing experience, the
+  // duration of a timer.
+  adjustExperienceTime: (id: string, direction: 1 | -1) => unknown;
   setShouldFollowSystemDarkMode: (shouldFollowSystemDarkMode: boolean) => unknown;
   setTheme: (theme: Theme) => unknown;
   setVibrationEnabled: (vibrationEnabled: boolean) => unknown;
-  increaseSaunaTimeLimit: () => unknown;
-  decreaseSaunaTimeLimit: () => unknown;
+  adjustCueVolume: (cueType: CueType, deltaPercent: number) => unknown;
+  setCueOtherAudio: (cueType: CueType, mode: OtherAudioMode) => unknown;
 }
 
 const readRetryDelayMs = 50;
@@ -94,30 +98,47 @@ export const useSettingsStore = create<SettingsStore>()(
     persist(
       (set, get) => ({
         ...defaultSettingsState,
-        setCustomPatternEnabled: (enabled) => set({ customPatternEnabled: enabled }),
-        setCustomPatternStep: (stepIndex, stepValue) => {
+        saveExperience: (id, settings) => {
+          const savedId = id ?? createExperienceId();
+          const saved = { ...normalizeExperienceSettings(settings), id: savedId };
+          const experiences = get().experiences;
           set({
-            customPatternSteps: setCustomPatternStepValue(
-              get().customPatternSteps,
-              stepIndex,
-              stepValue,
-            ),
+            experiences: experiences.some((experience) => experience.id === savedId)
+              ? experiences.map((experience) => (experience.id === savedId ? saved : experience))
+              : [...experiences, saved],
           });
+          return savedId;
         },
-        setSelectedPatternPresetId: (selectedPatternPresetId) => set({ selectedPatternPresetId }),
-        setGuidedBreathingVoice: (guidedBreathingVoice) => set({ guidedBreathingVoice }),
-        increaseTimeLimit: () =>
-          set({ timeLimit: adjustTimeLimit(get().timeLimit, timeLimitStepMs) }),
-        decreaseTimeLimit: () =>
-          set({ timeLimit: adjustTimeLimit(get().timeLimit, -timeLimitStepMs) }),
+        deleteExperience: (id) =>
+          set({ experiences: get().experiences.filter((experience) => experience.id !== id) }),
+        adjustExperienceTime: (id, direction) =>
+          set({
+            experiences: get().experiences.map((experience) => {
+              if (experience.id !== id) return experience;
+              return experience.kind === "timer"
+                ? {
+                    ...experience,
+                    timerDurationMs: adjustTimerDuration(
+                      experience.timerDurationMs,
+                      direction * timeLimitStepMs,
+                    ),
+                  }
+                : {
+                    ...experience,
+                    timeLimit: adjustTimeLimit(experience.timeLimit, direction * timeLimitStepMs),
+                  };
+            }),
+          }),
         setShouldFollowSystemDarkMode: (shouldFollowSystemDarkMode) =>
           set({ shouldFollowSystemDarkMode }),
         setTheme: (theme) => set({ theme }),
         setVibrationEnabled: (vibrationEnabled) => set({ vibrationEnabled }),
-        increaseSaunaTimeLimit: () =>
-          set({ saunaTimeLimit: adjustSaunaTimeLimit(get().saunaTimeLimit, timeLimitStepMs) }),
-        decreaseSaunaTimeLimit: () =>
-          set({ saunaTimeLimit: adjustSaunaTimeLimit(get().saunaTimeLimit, -timeLimitStepMs) }),
+        adjustCueVolume: (cueType, deltaPercent) =>
+          cueType === "voice"
+            ? set({ voiceVolume: adjustVolume(get().voiceVolume, deltaPercent) })
+            : set({ beepVolume: adjustVolume(get().beepVolume, deltaPercent) }),
+        setCueOtherAudio: (cueType, mode) =>
+          cueType === "voice" ? set({ voiceOtherAudio: mode }) : set({ beepOtherAudio: mode }),
       }),
       {
         name: "settings-storage",
@@ -131,21 +152,8 @@ export const useSettingsStore = create<SettingsStore>()(
   ),
 );
 
-export const useSelectedPatternName = () =>
-  useSettingsStore((state) =>
-    state.customPatternEnabled
-      ? "Custom"
-      : (patternPresets.find((patternPreset) => patternPreset.id === state.selectedPatternPresetId)
-          ?.name ?? patternPresets[0].name),
-  );
-
-export const useSelectedPatternSteps = () =>
-  useSettingsStore((state) =>
-    state.customPatternEnabled
-      ? state.customPatternSteps
-      : (patternPresets.find((patternPreset) => patternPreset.id === state.selectedPatternPresetId)
-          ?.steps ?? patternPresets[0].steps),
-  );
+export const useExperience = (id: string | undefined) =>
+  useSettingsStore((state) => state.experiences.find((experience) => experience.id === id));
 
 // https://github.com/pmndrs/zustand/blob/725c2c0cc08df936f42a52e3df3dec76780a6e01/docs/integrations/persisting-store-data.md
 export const useHydration = () => {

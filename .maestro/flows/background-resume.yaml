@@ -8,7 +8,7 @@ name: Background a running exercise
       id: "home.screen"
     timeout: 10000
 - tapOn:
-    id: "home.start-session"
+    id: "home.experience.breathing.start"
 - extendedWaitUntil:
     visible:
       id: "exercise.running"

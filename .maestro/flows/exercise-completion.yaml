@@ -7,32 +7,20 @@ name: Exercise completes after the last exhale
     visible:
       id: "home.screen"
     timeout: 10000
-- tapOn:
-    id: "home.customize"
-- extendedWaitUntil:
-    visible:
-      id: "settings.screen"
-    timeout: 5000
 # The default limit of five minutes makes this flow unnecessarily slow.
-- scrollUntilVisible:
-    element:
-      id: "settings.timer.decrease"
-    direction: DOWN
 - tapOn:
-    id: "settings.timer.decrease"
+    id: "home.experience.breathing.decrease"
 - tapOn:
-    id: "settings.timer.decrease"
+    id: "home.experience.breathing.decrease"
 - tapOn:
-    id: "settings.timer.decrease"
+    id: "home.experience.breathing.decrease"
 - tapOn:
-    id: "settings.timer.decrease"
+    id: "home.experience.breathing.decrease"
 - assertVisible:
-    id: "settings.timer.value"
-    text: "1"
-- runFlow:
-    file: ../subflows/close-settings.yaml
+    id: "home.experience.breathing.value"
+    text: "1 min"
 - tapOn:
-    id: "home.start-session"
+    id: "home.experience.breathing.start"
 - extendedWaitUntil:
     visible:
       id: "exercise.running"

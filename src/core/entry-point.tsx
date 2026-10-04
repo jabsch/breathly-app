@@ -3,7 +3,7 @@ import React, { FC, useEffect } from "react";
 import { Appearance, Platform, UIManager, View, LayoutAnimation } from "react-native";
 import { fonts as fontAssets } from "@breathly/assets/fonts";
 import { Navigator } from "@breathly/core/navigator";
-import { SaunaTimerController } from "@breathly/screens/sauna/sauna-timer-controller";
+import { TimersController } from "@breathly/screens/timers/timers-controller";
 import { useHydration, useSettingsStore } from "@breathly/stores/settings";
 import {
   initializeImmersiveMode,
@@ -72,7 +72,7 @@ const Main: FC = () => {
   return (
     <>
       <Navigator />
-      <SaunaTimerController />
+      <TimersController />
     </>
   );
 };

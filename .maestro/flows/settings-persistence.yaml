@@ -1,5 +1,5 @@
 appId: com.mmazzarolo.breathly
-name: Customize and persist settings
+name: Save an experience and persist settings
 ---
 - clearState
 - launchApp
@@ -7,58 +7,81 @@ name: Customize and persist settings
     visible:
       id: "home.screen"
     timeout: 10000
+# A new breathing experience, saved as a card.
 - tapOn:
-    id: "home.customize"
+    id: "home.create-experience"
 - extendedWaitUntil:
     visible:
-      id: "settings.screen"
+      id: "experience.screen"
     timeout: 5000
 - assertVisible: ".*Deep Calm \\(4-7-8-0\\).*"
 - tapOn:
-    id: "settings.pattern"
+    id: "experience.pattern"
 - assertVisible:
-    id: "settings.patterns.screen"
+    id: "experience.patterns.screen"
 - tapOn:
-    id: "settings.pattern.square"
+    id: "experience.pattern.square"
 - runFlow:
     file: ../subflows/return-from-patterns.yaml
 - assertVisible: ".*Square \\(4-4-4-4\\).*"
 - runFlow:
     file: ../subflows/set-disabled-voice.yaml
-# The app starts in the dark theme; switch to light and check that it sticks.
-- runFlow:
-    file: ../subflows/set-light-theme.yaml
 - tapOn:
-    id: "settings.vibration"
+    id: "experience.save"
+- extendedWaitUntil:
+    visible:
+      id: "home.screen"
+    timeout: 5000
+- assertVisible: "Square"
+# A new timer, named when "No Pattern: Custom Timer" is picked.
+- tapOn:
+    id: "home.create-experience"
+- tapOn:
+    id: "experience.pattern"
+- tapOn:
+    id: "experience.pattern.no-pattern"
+- inputText: "Tea"
+- tapOn:
+    id: "experience.name-ok"
+- tapOn:
+    id: "experience.save"
+- extendedWaitUntil:
+    visible:
+      id: "home.screen"
+    timeout: 5000
+- assertVisible: "Tea"
+# The app starts in the dark theme; switch to light in the menu's settings.
+- tapOn:
+    id: "home.menu"
+- tapOn:
+    id: "menu.settings"
+- extendedWaitUntil:
+    visible:
+      id: "settings.screen"
+    timeout: 5000
 - scrollUntilVisible:
     element:
-      id: "settings.timer.increase"
+      id: "settings.system-theme"
     direction: DOWN
-- tapOn:
-    id: "settings.timer.increase"
+- runFlow:
+    file: ../subflows/set-light-theme.yaml
 - runFlow:
     file: ../subflows/close-settings.yaml
-- assertVisible:
-    id: "home.screen"
 - killApp
 - launchApp
 - extendedWaitUntil:
     visible:
       id: "home.screen"
     timeout: 10000
+- assertVisible: "Square"
+- assertVisible: "Tea"
+- assertVisible: ".*No voice.*"
 - tapOn:
-    id: "home.customize"
-- extendedWaitUntil:
-    visible:
-      id: "settings.screen"
-    timeout: 5000
-- assertVisible: ".*Square \\(4-4-4-4\\).*"
-- assertVisible: ".*Disabled.*"
-- assertVisible: ".*Light theme.*"
+    id: "home.menu"
+- tapOn:
+    id: "menu.settings"
 - scrollUntilVisible:
     element:
-      id: "settings.timer.value"
+      id: "settings.theme"
     direction: DOWN
-- assertVisible:
-    id: "settings.timer.value"
-    text: "6"
+- assertVisible: ".*Light theme.*"

@@ -8,25 +8,15 @@ name: Show two-digit exercise time limit
       id: "home.screen"
     timeout: 10000
 - tapOn:
-    id: "home.customize"
-- extendedWaitUntil:
-    visible:
-      id: "settings.screen"
-    timeout: 5000
-- scrollUntilVisible:
-    element:
-      id: "settings.timer.increase"
-    direction: DOWN
+    id: "home.experience.breathing.increase"
 - tapOn:
-    id: "settings.timer.increase"
+    id: "home.experience.breathing.increase"
 - tapOn:
-    id: "settings.timer.increase"
+    id: "home.experience.breathing.increase"
 - tapOn:
-    id: "settings.timer.increase"
+    id: "home.experience.breathing.increase"
 - tapOn:
-    id: "settings.timer.increase"
-- tapOn:
-    id: "settings.timer.increase"
+    id: "home.experience.breathing.increase"
 - assertVisible:
-    id: "settings.timer.value"
-    text: "10"
+    id: "home.experience.breathing.value"
+    text: "10 min"

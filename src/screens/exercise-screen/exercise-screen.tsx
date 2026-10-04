@@ -1,11 +1,9 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useKeepAwake } from "expo-keep-awake";
-import React, { FC, useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { Animated, AppState, StyleSheet, Text, View } from "react-native";
+import React, { FC, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Animated, AppState, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Pressable } from "@breathly/common/pressable";
-import { RootStackParamList } from "@breathly/core/navigator";
 import { colors } from "@breathly/design/colors";
 import { widestDeviceDimension } from "@breathly/design/metrics";
 import { useColorScheme, useThemeColors } from "@breathly/design/theme";
@@ -18,27 +16,31 @@ import {
 } from "@breathly/screens/exercise-screen/accessibility-announcements";
 import { AnimatedDots } from "@breathly/screens/exercise-screen/animated-dots";
 import {
-  createExerciseSession,
-  exerciseSessionReducer,
   getExerciseStepTransition,
   type ResumableExerciseStatus,
 } from "@breathly/screens/exercise-screen/exercise-session";
 import { StepDescription } from "@breathly/screens/exercise-screen/step-description";
+import { runStepSeconds } from "@breathly/screens/exercise-screen/step-seconds";
 import { useExerciseAudio } from "@breathly/screens/exercise-screen/use-exercise-audio";
 import { useExerciseHaptics } from "@breathly/screens/exercise-screen/use-exercise-haptics";
 import { useExerciseLoop } from "@breathly/screens/exercise-screen/use-exercise-loop";
 import { StarsBackground } from "@breathly/screens/home-screen/stars-background";
-import { SaunaTimer } from "@breathly/screens/sauna/sauna-timer";
-import { useBackgroundSession } from "@breathly/services/background-session";
+import { RunningTimers } from "@breathly/screens/timers/running-timers";
 import {
-  useSelectedPatternName,
-  useSelectedPatternSteps,
-  useSettingsStore,
-} from "@breathly/stores/settings";
+  playSoftBeep,
+  speakCountdownNumber,
+  warmUpCountdownSpeech,
+} from "@breathly/services/audio";
+import { useBackgroundSession } from "@breathly/services/background-session";
+import { setActiveElapsedMs, useActiveSessionStore } from "@breathly/stores/active-session";
+import { useHomePagerStore } from "@breathly/stores/home-pager";
+import { useSettingsStore } from "@breathly/stores/settings";
+import type { Experience } from "@breathly/types/experience";
 import { GuidedBreathingMode } from "@breathly/types/guided-breathing-mode";
 import { StepMetadata } from "@breathly/types/step-metadata";
 import { animate } from "@breathly/utils/animate";
 import { buildStepsMetadata } from "@breathly/utils/build-steps-metadata";
+import { getExperienceDisplayName, getExperiencePatternSteps } from "@breathly/utils/experience";
 import { useScreenReaderEnabled } from "@breathly/utils/use-accessibility-preferences";
 import { useOnUpdate } from "@breathly/utils/use-on-update";
 import { BreathingAnimation } from "./breathing-animation";
@@ -53,10 +55,23 @@ const screenReaderFallbackVoice: GuidedBreathingMode = "paul";
 // The ending bell lasts about six seconds.
 const endingBellHoldMs = 8000;
 
-export const ExerciseScreen: FC<NativeStackScreenProps<RootStackParamList, "Exercise">> = ({
-  navigation,
-}) => {
-  const { guidedBreathingVoice } = useSettingsStore();
+// The voice cue at the start of a step, if the voice plays one there. The bell only marks the
+// two direction changes.
+const voiceCuesStep = (voice: GuidedBreathingMode, stepId: StepMetadata["id"]) =>
+  voice === "laura" ||
+  voice === "paul" ||
+  (voice === "bell" && (stepId === "inhale" || stepId === "exhale"));
+
+interface ExercisePanelProps {
+  experience: Experience;
+  // False while the user has swiped over to the home page. The session runs on either way.
+  visible: boolean;
+}
+
+// The running breathing session. It is a page of the home screen rather than a screen of its
+// own, so it keeps running, cues and all, while the user is on the home page or in the menu.
+export const ExercisePanel: FC<ExercisePanelProps> = ({ experience, visible }) => {
+  const guidedBreathingVoice = experience.voice;
   const screenReaderEnabled = useScreenReaderEnabled();
   // A user of a screen reader who disabled the voice has no channel that works
   // without sight, because the visuals carry the whole exercise. The voice
@@ -66,11 +81,11 @@ export const ExerciseScreen: FC<NativeStackScreenProps<RootStackParamList, "Exer
     screenReaderEnabled && guidedBreathingVoice === "disabled"
       ? screenReaderFallbackVoice
       : guidedBreathingVoice;
-  const [session, dispatchSession] = useReducer(
-    exerciseSessionReducer,
-    undefined,
-    createExerciseSession,
-  );
+  const session = useActiveSessionStore((state) => state.session);
+  const dispatchSession = useActiveSessionStore((state) => state.dispatch);
+  const pauseByUser = useActiveSessionStore((state) => state.pauseByUser);
+  const stopSession = useActiveSessionStore((state) => state.stop);
+  const setPage = useHomePagerStore((state) => state.setPage);
   const activeElapsedMs = useRef(0);
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
@@ -82,7 +97,7 @@ export const ExerciseScreen: FC<NativeStackScreenProps<RootStackParamList, "Exer
 
   // On Android the session keeps running, cues included, while the screen is off or another
   // app is in front. Elsewhere, or if Android refused the service, it pauses in the background.
-  const selectedPatternName = useSelectedPatternName();
+  const experienceName = getExperienceDisplayName(experience);
   const [endingBellFinished, setEndingBellFinished] = useState(false);
   const continuesInBackground = useBackgroundSession(
     session.status === "interlude" ||
@@ -90,7 +105,7 @@ export const ExerciseScreen: FC<NativeStackScreenProps<RootStackParamList, "Exer
       // The bell rings on after the session completes: releasing the wake lock with the
       // screen off would cut it short.
       (session.status === "completed" && !endingBellFinished),
-    `${selectedPatternName} session in progress`,
+    `${experienceName} session in progress`,
   );
 
   useEffect(() => {
@@ -121,11 +136,11 @@ export const ExerciseScreen: FC<NativeStackScreenProps<RootStackParamList, "Exer
     });
 
     return () => subscription.remove();
-  }, [continuesInBackground, stopExerciseAudio]);
+  }, [continuesInBackground, dispatchSession, stopExerciseAudio]);
 
   const handleInterludeComplete = useCallback(() => {
     dispatchSession({ type: "start" });
-  }, []);
+  }, [dispatchSession]);
 
   const handleExerciseStepChange = useCallback(
     (stepMetadata: StepMetadata) => {
@@ -137,24 +152,28 @@ export const ExerciseScreen: FC<NativeStackScreenProps<RootStackParamList, "Exer
   const handleExerciseComplete = useCallback(() => {
     playExerciseCompletedAudio();
     dispatchSession({ type: "complete", activeElapsedMs: activeElapsedMs.current });
-  }, [playExerciseCompletedAudio]);
+  }, [dispatchSession, playExerciseCompletedAudio]);
 
-  const handleStepIndexChange = useCallback((stepIndex: number) => {
-    dispatchSession({ type: "stepChanged", stepIndex });
-  }, []);
+  const handleStepIndexChange = useCallback(
+    (stepIndex: number) => {
+      dispatchSession({ type: "stepChanged", stepIndex });
+    },
+    [dispatchSession],
+  );
 
   const handleActiveElapsedChange = useCallback((elapsedMs: number) => {
     activeElapsedMs.current = elapsedMs;
+    setActiveElapsedMs(elapsedMs);
   }, []);
-
-  const handlePause = useCallback(() => {
-    stopExerciseAudio();
-    dispatchSession({ type: "pause", activeElapsedMs: activeElapsedMs.current, byUser: true });
-  }, [stopExerciseAudio]);
 
   const handleResume = useCallback(() => {
     dispatchSession({ type: "resume" });
-  }, []);
+  }, [dispatchSession]);
+
+  const handleClose = useCallback(() => {
+    stopSession();
+    setPage("home");
+  }, [setPage, stopSession]);
 
   return (
     <View
@@ -170,9 +189,9 @@ export const ExerciseScreen: FC<NativeStackScreenProps<RootStackParamList, "Exer
         },
       ]}
     >
-      <View style={styles.saunaRow}>
-        <SaunaTimer hideWhenIdle />
-      </View>
+      <ScrollView style={styles.timersList} contentContainerStyle={styles.timersRow}>
+        <RunningTimers scope="exercise" />
+      </ScrollView>
       {session.status === "interlude" && <ExerciseInterlude onComplete={handleInterludeComplete} />}
       {session.status === "running" && (
         <>
@@ -180,6 +199,7 @@ export const ExerciseScreen: FC<NativeStackScreenProps<RootStackParamList, "Exer
             <StarsBackground size={widestDeviceDimension * 0.8} fadeIn={true} />
           )}
           <ExerciseRunningFragment
+            experience={experience}
             continuesInBackground={continuesInBackground}
             onComplete={handleExerciseComplete}
             onStepChange={handleExerciseStepChange}
@@ -202,12 +222,12 @@ export const ExerciseScreen: FC<NativeStackScreenProps<RootStackParamList, "Exer
           does — a screen that locks during the countdown pauses the session before it starts.
           The completion screen does not: it never dismisses itself, so holding the display on
           there would keep it lit until the user came back to the phone. */}
-      {session.status !== "completed" && <KeepDisplayAwake />}
+      {session.status !== "completed" && visible && <KeepDisplayAwake />}
       <View style={styles.closeButtonRow}>
         {(session.status === "interlude" || session.status === "running") && (
           <Pressable
             style={[styles.closeButton, { borderColor: theme.control }]}
-            onPress={handlePause}
+            onPress={pauseByUser}
             testID="exercise.pause"
             accessibilityLabel="Pause breathing session"
             accessibilityRole="button"
@@ -217,7 +237,16 @@ export const ExerciseScreen: FC<NativeStackScreenProps<RootStackParamList, "Exer
         )}
         <Pressable
           style={[styles.closeButton, { borderColor: theme.control }]}
-          onPress={navigation.goBack}
+          onPress={() => setPage("home")}
+          testID="exercise.minimize"
+          accessibilityLabel="Show the home page, the session keeps running"
+          accessibilityRole="button"
+        >
+          <Ionicons name="albums-outline" size={22} color={theme.control} />
+        </Pressable>
+        <Pressable
+          style={[styles.closeButton, { borderColor: theme.control }]}
+          onPress={handleClose}
           testID="exercise.close"
           accessibilityLabel="Close breathing session"
           accessibilityRole="button"
@@ -236,6 +265,7 @@ const KeepDisplayAwake: FC = () => {
 };
 
 interface ExerciseRunningFragmentProps {
+  experience: Experience;
   continuesInBackground: boolean;
   onComplete: () => unknown;
   onStepChange: (stepMetadata: StepMetadata) => unknown;
@@ -248,6 +278,7 @@ interface ExerciseRunningFragmentProps {
 const unmountAnimDuration = 300;
 
 const ExerciseRunningFragment: FC<ExerciseRunningFragmentProps> = ({
+  experience,
   continuesInBackground,
   onComplete,
   onStepChange,
@@ -256,14 +287,16 @@ const ExerciseRunningFragment: FC<ExerciseRunningFragmentProps> = ({
   onActiveElapsedChange,
   initialStepIndex,
 }) => {
-  const { timeLimit, vibrationEnabled } = useSettingsStore();
-  const selectedPatternSteps = useSelectedPatternSteps();
+  const { timeLimit, voice, countdownNumbers, speakNumbers, softBeeps } = experience;
+  const vibrationEnabled = useSettingsStore((state) => state.vibrationEnabled);
+  const selectedPatternSteps = useMemo(() => getExperiencePatternSteps(experience), [experience]);
   const [unmountContentAnimVal] = useState(new Animated.Value(1));
   const stepsMetadata = useMemo(
     () => buildStepsMetadata(selectedPatternSteps),
     [selectedPatternSteps],
   );
 
+  const theme = useThemeColors();
   const { currentStep, exerciseAnimVal, textAnimVal } = useExerciseLoop(
     stepsMetadata,
     initialStepIndex,
@@ -318,6 +351,26 @@ const ExerciseRunningFragment: FC<ExerciseRunningFragmentProps> = ({
     true,
   );
 
+  // The countdown numbers, the spoken count and the beeps all follow the seconds of the step.
+  // The voice says the step's name at its start, so the spoken count starts with the second
+  // number, unless no voice cue plays there.
+  const [secondsRemaining, setSecondsRemaining] = useState<number | undefined>(undefined);
+  const countsSeconds = countdownNumbers || speakNumbers || softBeeps;
+  useEffect(() => {
+    if (speakNumbers) warmUpCountdownSpeech();
+  }, [speakNumbers]);
+  useEffect(() => {
+    if (!currentStep || !countsSeconds) return;
+    const stepCued = voiceCuesStep(voice, currentStep.id);
+    return runStepSeconds(currentStep.duration, (remaining, index) => {
+      // The step after the last one only ends the session.
+      if (completionStartedRef.current) return;
+      setSecondsRemaining(remaining);
+      if (softBeeps) void playSoftBeep();
+      if (speakNumbers && (index > 0 || !stepCued)) speakCountdownNumber(remaining);
+    });
+  }, [countsSeconds, currentStep, softBeeps, speakNumbers, voice]);
+
   const handleTimeLimitReached = useCallback(() => {
     timeLimitReachedRef.current = true;
   }, []);
@@ -343,6 +396,17 @@ const ExerciseRunningFragment: FC<ExerciseRunningFragmentProps> = ({
             durationMs={currentStep.duration}
             animationValue={textAnimVal}
           />
+          {countdownNumbers && secondsRemaining !== undefined && (
+            <Text
+              style={[styles.countdown, { color: theme.text }]}
+              testID="exercise.countdown"
+              // The step label already tells a screen reader how long the step lasts.
+              importantForAccessibility="no"
+              accessibilityElementsHidden
+            >
+              {secondsRemaining}
+            </Text>
+          )}
           <AnimatedDots
             numberOfDots={3}
             totalDuration={currentStep.duration}
@@ -399,9 +463,21 @@ const ExercisePaused: FC<ExercisePausedProps> = ({ resumeStatus, pausedByUser, o
 };
 
 const styles = StyleSheet.create({
-  saunaRow: {
+  timersList: {
+    flexGrow: 0,
+    maxHeight: 200,
+  },
+  timersRow: {
     alignItems: "center",
     paddingTop: 8,
+  },
+  countdown: {
+    ...fontSizes.xxl5,
+    lineHeight: 56,
+    fontFamily: fontFamilies.regular,
+    fontVariant: ["tabular-nums"],
+    marginBottom: 8,
+    textAlign: "center",
   },
   closeButton: {
     alignItems: "center",

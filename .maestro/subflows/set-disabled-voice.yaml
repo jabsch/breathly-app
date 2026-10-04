@@ -5,25 +5,25 @@ appId: com.mmazzarolo.breathly
       platform: Android
     commands:
       - tapOn:
-          id: "settings.voice"
+          id: "experience.voice"
       - tapOn:
-          id: "settings.voice.option.disabled"
+          id: "experience.voice.option.disabled"
 - runFlow:
     when:
       platform: iOS
     commands:
       - tapOn:
-          id: "settings.voice"
+          id: "experience.voice"
       - swipe:
           from:
-            id: "settings.voice.picker"
+            id: "experience.voice.picker"
           direction: UP
       - swipe:
           from:
-            id: "settings.voice.picker"
+            id: "experience.voice.picker"
           direction: UP
       - swipe:
           from:
-            id: "settings.voice.picker"
+            id: "experience.voice.picker"
           direction: UP
-- assertVisible: ".*Disabled.*"
+- assertVisible: ".*No voice.*"

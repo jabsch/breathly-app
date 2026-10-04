@@ -8,9 +8,9 @@ name: Launch and exercise smoke test
       id: "home.screen"
     timeout: 10000
 - assertVisible:
-    id: "home.start-session"
+    id: "home.experience.breathing.start"
 - tapOn:
-    id: "home.start-session"
+    id: "home.experience.breathing.start"
 - assertVisible:
     id: "exercise.interlude"
 - extendedWaitUntil:

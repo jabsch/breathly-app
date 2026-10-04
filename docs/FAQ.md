@@ -1,7 +1,8 @@
 # FAQ
 
 Answers about the changes in this fork of Breathly. The changes live in
-[pull request #1](https://github.com/jabsch/breathly-app/pull/1), and test builds are on the
+[pull request #1](https://github.com/jabsch/breathly-app/pull/1) and the pull requests after it,
+and test builds are on the
 [releases page](https://github.com/jabsch/breathly-app/releases).
 
 Questions are ordered by how often they've been asked, most asked first. The counts are in
@@ -19,6 +20,10 @@ Questions are ordered by how often they've been asked, most asked first. The cou
 - [Why does the app ask to send notifications?](#why-does-the-app-ask-to-send-notifications)
 - [Does this work on iPhone?](#does-this-work-on-iphone)
 - [What does the license allow?](#what-does-the-license-allow)
+- [How do I create or edit an experience?](#how-do-i-create-or-edit-an-experience)
+- [Can I leave a session running and go back to the home page?](#can-i-leave-a-session-running-and-go-back-to-the-home-page)
+- [What do the countdown numbers, spoken numbers and soft beeps do?](#what-do-the-countdown-numbers-spoken-numbers-and-soft-beeps-do)
+- [How do I change the volume of the voice and beeps, or keep my music playing?](#how-do-i-change-the-volume-of-the-voice-and-beeps-or-keep-my-music-playing)
 
 ## Where do I get the APK, and how do I install it?
 
@@ -35,7 +40,7 @@ Each push to the development branch builds, tests and publishes a new one.
 ## Does the app use dark mode?
 
 Yes, the app now opens in dark mode. You can switch to light, or to "Use system theme", in
-settings.
+Settings, from the menu (swipe left on the home page, or tap ☰).
 
 ## How was it tested?
 
@@ -43,11 +48,13 @@ The [Android APK workflow](../.github/workflows/android-apk.yml) builds the rele
 [`scripts/android-smoke-test.sh`](../scripts/android-smoke-test.sh) on an Android 11 (API 30)
 emulator before publishing. The smoke test:
 
-- launches the app and checks the 4-7-8, 5 minute and 15 minute sauna defaults,
-- starts both timers,
+- launches the app and checks the two starting cards: 5 minutes of 4-7-8 and the 15 minute sauna
+  timer,
+- starts both,
 - turns the screen off for 40 seconds and checks that the background service is running,
 - wakes the screen and checks that the breathing timer kept counting,
 - pauses and resumes each timer on its own,
+- swipes to the home page and back to the running session, then on to the menu,
 - sends the app to the background and back,
 - and checks the log for crashes.
 
@@ -56,9 +63,9 @@ tests run separately in the [validate workflow](../.github/workflows/validate.ym
 
 ## Does the session keep going when the screen is off?
 
-Yes, on Android. While a breathing session or the sauna timer runs, the app keeps a small
+Yes, on Android. While a breathing session or any timer runs, the app keeps a small
 notification in the status bar. Behind it, a foreground service and a wake lock keep the timers,
-voice prompts, bells and vibrations going with the screen off. The service stops as soon as nothing
+voice prompts, counted numbers, beeps, bells and vibrations going with the screen off. The service stops as soon as nothing
 is running, or when you swipe the app away.
 
 Steps are driven by the clock, not by animations. If the phone stalls for a moment, the session
@@ -70,28 +77,34 @@ Source: [`modules/background-session`](../modules/background-session),
 
 ## What is the default session?
 
-Five minutes of 4-7-8 breathing ("4-7-8 Deep Calm"). If you used the original app's defaults
-(Square, 2 minutes), they move to the new defaults on first launch. Settings you changed yourself
-are kept.
+Five minutes of 4-7-8 breathing ("4-7-8 Deep Calm"), the first card on the home page. If you used
+the original app's defaults (Square, 2 minutes), they move to the new defaults on first launch.
+Settings you changed yourself are kept: the session you had set up becomes that first card, and
+your sauna time becomes the "Sauna timer" card.
 
 Source: [`src/stores/settings-state.ts`](../src/stores/settings-state.ts).
 
 ## How does the sauna timer work?
 
-The sauna timer card is on the home screen above the start button. It defaults to 15 minutes, and
-the − and + buttons change it one minute at a time, from 1 to 60 minutes. It runs alongside a
-breathing session, and it also shows on the exercise screen while it runs.
+The sauna timer is a saved timer card on the home page. It defaults to 15 minutes, and the − and +
+buttons change it one minute at a time. Tap the pencil to rename it or change its length.
 
-When it ends, the phone vibrates and plays the bell, even if the screen is off and even if step
+You can add as many timers as you like: tap **Create Experience**, open **Pattern**, pick **No
+Pattern: Custom Timer** and give it a name. Timers run at the same time as each other and next to
+a breathing session, and the running ones also show on the session screen.
+
+When one ends, the phone vibrates and plays the bell, even if the screen is off and even if step
 vibrations are turned off.
 
-Source: [`src/screens/sauna`](../src/screens/sauna) and [`src/stores/sauna.ts`](../src/stores/sauna.ts).
+Source: [`src/screens/timers`](../src/screens/timers) and
+[`src/stores/timers.ts`](../src/stores/timers.ts).
 
 ## Can I pause the two timers separately?
 
-Yes. The breathing session has its own pause button next to the close button, and the sauna timer
-has its own pause, resume and stop buttons. Pausing, resuming or stopping one never touches the
-other.
+Yes. The breathing session has its own pause button next to the close button, and on its card,
+and each timer has its own pause, resume and stop buttons. Pausing, resuming or stopping one never
+touches the others. Only one breathing session runs at a time: starting another one ends the one
+that is running.
 
 ## What is the best way to share it with other people?
 
@@ -132,7 +145,7 @@ no timer is running.
 
 ## Does this work on iPhone?
 
-The timer, sauna and dark mode changes work on iPhone, but the screen-off behavior is Android
+The saved experiences, timers and dark mode work on iPhone, but the screen-off behavior is Android
 only. iOS pauses the session when the app goes to the background, as before.
 
 ## What does the license allow?
@@ -140,3 +153,37 @@ only. iOS pauses the session when the app goes to the background, as before.
 Breathly uses the [Mozilla Public License 2.0](../LICENSE). You can modify and redistribute it,
 including in app stores, as long as the modified source files stay under the MPL, the source is
 available (this public repository covers that), and the license and copyright notices are kept.
+
+## How do I create or edit an experience?
+
+Tap **Create Experience** at the bottom of the home page. Pick a breathing pattern (or **No
+Pattern: Custom Timer** for a plain timer), a voice, the counting options and a length, then tap
+**Save Experience**. It shows up as a card on the home page, and the button stays at the bottom
+however many cards there are.
+
+Each card shows its pattern, voice and time, with − and + for the time, Start, and a pencil to
+edit it. Delete an experience from the bottom of its edit page.
+
+## Can I leave a session running and go back to the home page?
+
+Yes. Swipe left on a running session, or tap the cards button between pause and close, and the
+home page comes back while the session keeps going. Swipe right, or tap the session's card, to
+return to it. Swiping left on the home page opens the menu, with Settings, FAQ and About.
+
+## What do the countdown numbers, spoken numbers and soft beeps do?
+
+They are three switches on the Create Experience page, under Counting:
+
+- **Countdown numbers** shows the seconds left in each step: Inhale 4, 3, 2, 1, Hold 7, 6, 5…
+- **Say the numbers** has a voice count along. The chosen voice says the step's name at its start
+  and the count follows on each second after it. The numbers come from the phone's text-to-speech
+  voice, because the recorded voices only say the step names.
+- **Soft beeps** plays a quiet beep every second.
+
+## How do I change the volume of the voice and beeps, or keep my music playing?
+
+Open Settings from the menu. The voice (with the counted numbers and bells) and the soft beeps
+each have a volume, and each has an **Other audio** choice for what music from other apps does
+while they play: keep playing, lower, or pause. Android decides how far "lower" goes; apps can't
+set it. By default the voice lowers music and the beeps leave it alone. The spoken numbers come
+from text-to-speech and don't change other audio.

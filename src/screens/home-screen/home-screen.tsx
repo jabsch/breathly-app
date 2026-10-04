@@ -1,6 +1,16 @@
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import React, { FC, useCallback, useEffect } from "react";
-import { Animated, StyleSheet, Text, View } from "react-native";
+import React, { FC, useCallback, useEffect, useMemo, useRef } from "react";
+import {
+  Animated,
+  BackHandler,
+  PanResponder,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { create } from "zustand";
 import { Pressable } from "@breathly/common/pressable";
@@ -8,9 +18,16 @@ import { RootStackParamList } from "@breathly/core/navigator";
 import { colors } from "@breathly/design/colors";
 import { useColorScheme, useThemeColors } from "@breathly/design/theme";
 import { fontFamilies, fontSizes } from "@breathly/design/typography";
+import { ExercisePanel } from "@breathly/screens/exercise-screen/exercise-screen";
+import { HomeMenu } from "@breathly/screens/home-screen/home-menu";
 import { PlanetsBackground } from "@breathly/screens/home-screen/planets-background";
 import { StarsBackground } from "@breathly/screens/home-screen/stars-background";
-import { SaunaTimer } from "@breathly/screens/sauna/sauna-timer";
+import { ExperienceCard } from "@breathly/screens/timers/timer-card";
+import { useActiveSessionStore } from "@breathly/stores/active-session";
+import { useExperienceDraftStore } from "@breathly/stores/experience-draft";
+import { homePagePositions, useHomePagerStore, type HomePage } from "@breathly/stores/home-pager";
+import { useSettingsStore } from "@breathly/stores/settings";
+import type { Experience } from "@breathly/types/experience";
 
 export const useHomeScreenStatusStore = create<{
   isHomeScreenReady: boolean;
@@ -20,6 +37,14 @@ export const useHomeScreenStatusStore = create<{
   markHomeScreenAsReady: () => set(() => ({ isHomeScreenReady: true })),
 }));
 
+// A drag counts as a page swipe once it has moved this far, mostly sideways: anything more
+// vertical belongs to the list of cards.
+const swipeStartDistance = 16;
+const swipeDirectionRatio = 1.5;
+const swipeVelocityThreshold = 0.4;
+const pageOrder: HomePage[] = ["exercise", "home", "menu"];
+const menuWidthMax = 320;
+
 export const HomeScreen: FC<NativeStackScreenProps<RootStackParamList, "Home">> = ({
   navigation,
 }) => {
@@ -27,12 +52,15 @@ export const HomeScreen: FC<NativeStackScreenProps<RootStackParamList, "Home">> 
   const theme = useThemeColors();
   const { isHomeScreenReady, markHomeScreenAsReady } = useHomeScreenStatusStore();
   const insets = useSafeAreaInsets();
-  const handleStartButtonPress = () => {
-    navigation.navigate("Exercise");
-  };
-  const handleCustomizeButtonPress = () => {
-    navigation.navigate("Settings");
-  };
+  const { width } = useWindowDimensions();
+  const experiences = useSettingsStore((state) => state.experiences);
+  const activeExperience = useActiveSessionStore((state) => state.experience);
+  const runId = useActiveSessionStore((state) => state.runId);
+  const beginDraft = useExperienceDraftStore((state) => state.begin);
+  const page = useHomePagerStore((state) => state.page);
+  const setPage = useHomePagerStore((state) => state.setPage);
+  const hasExercise = activeExperience != null;
+  const menuWidth = Math.min(menuWidthMax, width * 0.82);
 
   // To avoid weird flashes we store a flag to track if the home screen has been fully rendered.
   // This flag is used to tell to `SplashScreenManager` when to hide the splash screen.
@@ -50,78 +78,257 @@ export const HomeScreen: FC<NativeStackScreenProps<RootStackParamList, "Home">> 
     }
   }, [isHomeScreenReady, markHomeScreenAsReady]);
 
-  return (
-    <Animated.View
-      testID="home.screen"
-      style={[
-        styles.screen,
-        {
-          // Paddings to handle safe area
-          paddingTop: insets.top,
-          paddingBottom: insets.bottom,
-          paddingLeft: insets.left,
-          paddingRight: insets.right,
-        },
-      ]}
-    >
-      {colorScheme === "dark" && (
-        <StarsBackground onImageLoaded={handleStarsBackgroundImageLoaded} />
-      )}
-      {colorScheme === "light" && <PlanetsBackground />}
+  // The pages sit side by side: -1 is the session, 0 the cards, 1 the menu.
+  const position = useRef(new Animated.Value(homePagePositions[page])).current;
 
-      <View style={styles.titleBlock}>
-        <Animated.Text style={[styles.title, colorScheme === "dark" && styles.titleDark]}>
-          Breathly
-        </Animated.Text>
-        <Animated.Text style={[styles.tagline, { color: theme.textSecondary }]}>
-          Relax, focus on your breath, and find your inner peace.
-        </Animated.Text>
-      </View>
-      <SaunaTimer />
-      <Pressable
-        style={[styles.button, styles.startButton]}
-        onPress={handleStartButtonPress}
-        testID="home.start-session"
-        accessibilityRole="button"
-      >
-        <Text
-          adjustsFontSizeToFit
-          style={styles.buttonLabel}
-          maxFontSizeMultiplier={1.2}
-          minimumFontScale={0.85}
-          numberOfLines={1}
-        >
-          Start a new session
-        </Text>
-      </Pressable>
-      <Animated.Text style={[styles.separator, { color: theme.textSecondary }]}>or</Animated.Text>
-      <Pressable
+  // A session that ends leaves no page to stay on.
+  useEffect(() => {
+    if (!hasExercise && page === "exercise") setPage("home");
+  }, [hasExercise, page, setPage]);
+
+  useEffect(() => {
+    const animation = Animated.spring(position, {
+      toValue: homePagePositions[page],
+      useNativeDriver: true,
+      overshootClamping: true,
+      speed: 18,
+      bounciness: 0,
+    });
+    animation.start();
+    return () => animation.stop();
+  }, [page, position]);
+
+  // Back goes to the cards first, the way a swipe would; the session keeps running.
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (!navigation.isFocused() || useHomePagerStore.getState().page === "home") return false;
+      setPage("home");
+      return true;
+    });
+    return () => subscription.remove();
+  }, [navigation, setPage]);
+
+  // The responder reads these on every move: it is built once.
+  const pagerStateRef = useRef({ page, hasExercise, width });
+  pagerStateRef.current = { page, hasExercise, width };
+  const dragStartRef = useRef(0);
+
+  const panResponder = useMemo(() => {
+    const lowestPosition = () => (pagerStateRef.current.hasExercise ? -1 : 0);
+    const isPageSwipe = (dx: number, dy: number) => {
+      if (Math.abs(dx) < swipeStartDistance || Math.abs(dx) < Math.abs(dy) * swipeDirectionRatio)
+        return false;
+      const current = homePagePositions[pagerStateRef.current.page];
+      // A swipe left moves toward the menu, a swipe right toward the session.
+      return dx < 0 ? current < 1 : current > lowestPosition();
+    };
+    return PanResponder.create({
+      onMoveShouldSetPanResponderCapture: (_event, gesture) => isPageSwipe(gesture.dx, gesture.dy),
+      onPanResponderGrant: () => {
+        position.stopAnimation((value) => {
+          dragStartRef.current = value;
+        });
+      },
+      onPanResponderMove: (_event, gesture) => {
+        const next = dragStartRef.current - gesture.dx / pagerStateRef.current.width;
+        position.setValue(Math.min(1, Math.max(lowestPosition(), next)));
+      },
+      onPanResponderRelease: (_event, gesture) => {
+        const { width: pageWidth, page: currentPage } = pagerStateRef.current;
+        const current = homePagePositions[currentPage];
+        let target = current;
+        if (gesture.dx < -pageWidth / 4 || gesture.vx < -swipeVelocityThreshold) target += 1;
+        else if (gesture.dx > pageWidth / 4 || gesture.vx > swipeVelocityThreshold) target -= 1;
+        target = Math.min(1, Math.max(lowestPosition(), target));
+        const targetPage = pageOrder[target + 1] ?? "home";
+        if (targetPage === currentPage) {
+          Animated.spring(position, {
+            toValue: target,
+            useNativeDriver: true,
+            overshootClamping: true,
+            speed: 18,
+            bounciness: 0,
+          }).start();
+        }
+        useHomePagerStore.getState().setPage(targetPage);
+      },
+      onPanResponderTerminate: () => {
+        Animated.spring(position, {
+          toValue: homePagePositions[pagerStateRef.current.page],
+          useNativeDriver: true,
+          overshootClamping: true,
+        }).start();
+      },
+    });
+  }, [position]);
+
+  const handleCreateExperiencePress = () => {
+    beginDraft();
+    navigation.navigate("Experience", { screen: "ExperienceRoot" });
+  };
+  const handleEditExperience = useCallback(
+    (experience: Experience) => {
+      beginDraft(experience);
+      navigation.navigate("Experience", { screen: "ExperienceRoot" });
+    },
+    [beginDraft, navigation],
+  );
+
+  const homeTranslateX = position.interpolate({
+    inputRange: [-1, 0],
+    outputRange: [width, 0],
+    extrapolate: "clamp",
+  });
+  const exerciseTranslateX = position.interpolate({
+    inputRange: [-1, 0],
+    outputRange: [0, -width],
+    extrapolate: "clamp",
+  });
+  const menuTranslateX = position.interpolate({
+    inputRange: [0, 1],
+    outputRange: [menuWidth, 0],
+    extrapolate: "clamp",
+  });
+  const backdropOpacity = position.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 0.5],
+    extrapolate: "clamp",
+  });
+
+  const safeAreaPadding = {
+    paddingTop: insets.top,
+    paddingBottom: insets.bottom,
+    paddingLeft: insets.left,
+    paddingRight: insets.right,
+  };
+  const hiddenFromAccessibility = (shown: boolean) =>
+    shown ? ("auto" as const) : ("no-hide-descendants" as const);
+
+  return (
+    <View
+      style={[styles.pager, { backgroundColor: theme.background }]}
+      {...panResponder.panHandlers}
+    >
+      <Animated.View
+        testID={page === "home" ? "home.screen" : undefined}
+        pointerEvents={page === "home" ? "auto" : "none"}
+        importantForAccessibility={hiddenFromAccessibility(page === "home")}
+        accessibilityElementsHidden={page !== "home"}
         style={[
-          styles.button,
-          styles.customizeButton,
-          // A pale slab glares on the night sky: in the dark the secondary action is an
-          // outline, so the warm start button stays the one thing that stands out.
-          colorScheme === "dark" && [styles.customizeButtonDark, { borderColor: theme.border }],
+          styles.page,
+          safeAreaPadding,
+          { backgroundColor: theme.background, transform: [{ translateX: homeTranslateX }] },
         ]}
-        onPress={handleCustomizeButtonPress}
-        testID="home.customize"
-        accessibilityRole="button"
       >
-        <Text
-          adjustsFontSizeToFit
-          style={[styles.buttonLabel, colorScheme === "dark" && { color: theme.text }]}
-          maxFontSizeMultiplier={1.2}
-          minimumFontScale={0.85}
-          numberOfLines={1}
+        {colorScheme === "dark" && (
+          <StarsBackground onImageLoaded={handleStarsBackgroundImageLoaded} />
+        )}
+        {colorScheme === "light" && <PlanetsBackground />}
+
+        <View style={styles.topBar}>
+          <Pressable
+            onPress={() => setPage("menu")}
+            accessibilityRole="button"
+            accessibilityLabel="Open the menu"
+            testID="home.menu"
+            style={styles.menuButton}
+          >
+            <Ionicons name="menu" size={26} color={theme.control} />
+          </Pressable>
+        </View>
+        <View style={styles.titleBlock}>
+          <Text style={[styles.title, colorScheme === "dark" && styles.titleDark]}>Breathly</Text>
+          <Text style={[styles.tagline, { color: theme.textSecondary }]}>
+            Relax, focus on your breath, and find your inner peace.
+          </Text>
+        </View>
+        <ScrollView
+          style={styles.cardList}
+          contentContainerStyle={styles.cardListContent}
+          testID="home.experiences"
         >
-          Customize the experience
-        </Text>
-      </Pressable>
-    </Animated.View>
+          {experiences.map((experience) => (
+            <ExperienceCard
+              key={experience.id}
+              experience={experience}
+              scope="home"
+              onEdit={handleEditExperience}
+            />
+          ))}
+        </ScrollView>
+        {/* Outside the list, so it stays at the bottom however many cards there are. */}
+        <Pressable
+          style={[styles.button, styles.createButton]}
+          onPress={handleCreateExperiencePress}
+          testID="home.create-experience"
+          accessibilityRole="button"
+        >
+          <Text
+            adjustsFontSizeToFit
+            style={styles.buttonLabel}
+            maxFontSizeMultiplier={1.2}
+            minimumFontScale={0.85}
+            numberOfLines={1}
+          >
+            Create Experience
+          </Text>
+        </Pressable>
+      </Animated.View>
+
+      {activeExperience && (
+        <Animated.View
+          pointerEvents={page === "exercise" ? "auto" : "none"}
+          importantForAccessibility={hiddenFromAccessibility(page === "exercise")}
+          accessibilityElementsHidden={page !== "exercise"}
+          style={[
+            styles.page,
+            { backgroundColor: theme.background, transform: [{ translateX: exerciseTranslateX }] },
+          ]}
+        >
+          <ExercisePanel key={runId} experience={activeExperience} visible={page === "exercise"} />
+        </Animated.View>
+      )}
+
+      <Animated.View
+        pointerEvents={page === "menu" ? "auto" : "none"}
+        style={[StyleSheet.absoluteFill, styles.backdrop, { opacity: backdropOpacity }]}
+      >
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={() => setPage("home")}
+          accessibilityLabel="Close the menu"
+          testID="home.menu-backdrop"
+        />
+      </Animated.View>
+      <Animated.View
+        pointerEvents={page === "menu" ? "auto" : "none"}
+        importantForAccessibility={hiddenFromAccessibility(page === "menu")}
+        accessibilityElementsHidden={page !== "menu"}
+        style={[
+          styles.menu,
+          safeAreaPadding,
+          {
+            width: menuWidth,
+            backgroundColor: theme.surface,
+            transform: [{ translateX: menuTranslateX }],
+          },
+        ]}
+      >
+        <HomeMenu
+          onNavigate={(route) => {
+            setPage("home");
+            navigation.navigate(route);
+          }}
+        />
+      </Animated.View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  backdrop: {
+    backgroundColor: "#000000",
+  },
   button: {
     alignItems: "center",
     borderRadius: 8,
@@ -138,34 +345,48 @@ const styles = StyleSheet.create({
     textAlign: "center",
     width: "100%",
   },
-  customizeButton: {
-    backgroundColor: colors.pastel["gray-light"],
-    marginBottom: 80,
-  },
-  customizeButtonDark: {
-    backgroundColor: "transparent",
-    borderWidth: 1,
-  },
-  screen: {
-    alignItems: "center",
+  cardList: {
+    alignSelf: "stretch",
     flex: 1,
-    justifyContent: "space-between",
   },
-  separator: {
-    ...fontSizes.lg,
-    fontFamily: fontFamilies.regular,
-    fontWeight: "300",
-    marginVertical: 8,
-    textAlign: "center",
+  cardListContent: {
+    alignItems: "center",
+    paddingTop: 8,
   },
-  startButton: {
+  createButton: {
     backgroundColor: colors.pastel["orange-light"],
+    marginBottom: 32,
+    marginTop: 12,
+  },
+  menu: {
+    bottom: 0,
+    position: "absolute",
+    right: 0,
+    top: 0,
+  },
+  menuButton: {
+    alignItems: "center",
+    height: 44,
+    justifyContent: "center",
+    width: 44,
+  },
+  page: {
+    alignItems: "center",
+    bottom: 0,
+    left: 0,
+    position: "absolute",
+    right: 0,
+    top: 0,
+  },
+  pager: {
+    flex: 1,
+    overflow: "hidden",
   },
   tagline: {
     ...fontSizes.lg,
     fontFamily: fontFamilies.regular,
     fontWeight: "300",
-    marginBottom: 32,
+    marginBottom: 16,
     textAlign: "center",
   },
   title: {
@@ -179,11 +400,17 @@ const styles = StyleSheet.create({
   },
   titleBlock: {
     alignItems: "center",
-    flex: 1,
-    justifyContent: "flex-end",
     marginHorizontal: 48,
+    marginTop: 24,
   },
   titleDark: {
     color: colors.white,
+  },
+  topBar: {
+    alignSelf: "stretch",
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    paddingHorizontal: 8,
+    paddingTop: 4,
   },
 });

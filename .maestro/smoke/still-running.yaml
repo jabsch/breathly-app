@@ -6,7 +6,7 @@ name: Breathing session and sauna timer are still running
 - assertNotVisible:
     id: "exercise.paused"
 - assertVisible:
-    id: "sauna.pause"
+    id: "exercise.experience.sauna.pause"
 # 40 seconds with the screen off: the five-minute countdown must be below 04:30 by now.
 - assertVisible:
     id: "exercise.timer"
@@ -19,11 +19,11 @@ name: Breathing session and sauna timer are still running
       id: "exercise.paused"
     timeout: 5000
 - assertVisible:
-    id: "sauna.pause"
+    id: "exercise.experience.sauna.pause"
 - tapOn:
-    id: "sauna.pause"
+    id: "exercise.experience.sauna.pause"
 - assertVisible:
-    id: "sauna.resume"
+    id: "exercise.experience.sauna.resume"
 - tapOn:
     id: "exercise.resume"
 - extendedWaitUntil:
@@ -31,12 +31,43 @@ name: Breathing session and sauna timer are still running
       id: "exercise.running"
     timeout: 5000
 - assertVisible:
-    id: "sauna.resume"
-- tapOn:
-    id: "sauna.stop"
-- tapOn:
-    id: "exercise.close"
+    id: "exercise.experience.sauna.resume"
+# Swiping left shows the home page and leaves the session running; its card brings it back.
+- swipe:
+    direction: LEFT
 - extendedWaitUntil:
     visible:
       id: "home.screen"
     timeout: 5000
+- assertVisible:
+    id: "home.experience.breathing.pause"
+- tapOn:
+    id: "home.experience.breathing.open"
+- extendedWaitUntil:
+    visible:
+      id: "exercise.running"
+    timeout: 5000
+# Swiping left twice from the session reaches the menu; back closes it.
+- swipe:
+    direction: LEFT
+- extendedWaitUntil:
+    visible:
+      id: "home.screen"
+    timeout: 5000
+- swipe:
+    direction: LEFT
+- extendedWaitUntil:
+    visible:
+      id: "menu.settings"
+    timeout: 5000
+- back
+- extendedWaitUntil:
+    visible:
+      id: "home.screen"
+    timeout: 5000
+- tapOn:
+    id: "home.experience.sauna.stop"
+- tapOn:
+    id: "home.experience.breathing.stop"
+- assertVisible:
+    id: "home.experience.breathing.start"
