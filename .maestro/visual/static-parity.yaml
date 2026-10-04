@@ -16,13 +16,13 @@ tags:
     commands:
       - tapOn: "Don't Show Again"
 - extendedWaitUntil:
-    visible: "Start a new session"
+    visible: "Create Experience"
     timeout: 10000
 - waitForAnimationToEnd:
     timeout: 2500
 - takeScreenshot:
     path: "home-${VISUAL_VARIANT}"
-- tapOn: "Customize the experience"
+- tapOn: "Create Experience"
 - extendedWaitUntil:
     visible: "Breathing pattern"
     timeout: 5000

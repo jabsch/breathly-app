@@ -9,8 +9,8 @@ appId: com.mmazzarolo.breathly
     when:
       platform: iOS
     commands:
-      - tapOn: "Customizations"
+      - tapOn: "Create Experience"
 - extendedWaitUntil:
     visible:
-      id: "settings.screen"
+      id: "experience.screen"
     timeout: 5000

@@ -8,4 +8,5 @@ export const sounds = {
   endingBell: require("../../assets/audio/endingbell1.mp3"),
   cueBell1: require("../../assets/audio/cuebell1.mp3"),
   cueBell2: require("../../assets/audio/cuebell2.mp3"),
+  softBeep: require("../../assets/audio/softbeep.mp3"),
 };

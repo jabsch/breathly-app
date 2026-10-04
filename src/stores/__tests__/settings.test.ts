@@ -11,7 +11,7 @@ jest.mock("@react-native-async-storage/async-storage", () => ({
   },
 }));
 
-import { defaultSettingsState } from "../settings-state";
+import { defaultExperienceSettings, defaultSettingsState } from "../settings-state";
 
 // The store starts hydrating the moment the module loads, so each case configures the
 // storage first and then loads a fresh copy of the store.
@@ -23,7 +23,25 @@ const loadSettingsStore = async () => {
 };
 
 const storedSettings = (overrides: Record<string, unknown>) =>
-  JSON.stringify({ state: { ...defaultSettingsState, ...overrides }, version: 0 });
+  JSON.stringify({ state: { ...defaultSettingsState, ...overrides }, version: 2 });
+
+// A payload from before saved experiences: one session and one sauna timer.
+const legacySettings = (overrides: Record<string, unknown>, version: number) =>
+  JSON.stringify({
+    state: {
+      customPatternEnabled: false,
+      customPatternSteps: [4_000, 2_000, 4_000, 2_000],
+      selectedPatternPresetId: "deep-calm",
+      guidedBreathingVoice: "paul",
+      timeLimit: 300_000,
+      shouldFollowSystemDarkMode: false,
+      theme: "dark",
+      vibrationEnabled: true,
+      saunaTimeLimit: 900_000,
+      ...overrides,
+    },
+    version,
+  });
 
 let warnSpy: jest.SpyInstance;
 
@@ -104,49 +122,78 @@ describe("settings persistence", () => {
   });
 
   it("repairs an out-of-range stored value instead of failing", async () => {
-    mockGetItem.mockResolvedValue(storedSettings({ theme: "sepia", timeLimit: -1 }));
+    mockGetItem.mockResolvedValue(storedSettings({ theme: "sepia", voiceVolume: -1 }));
 
     const useSettingsStore = await loadSettingsStore();
 
     expect(useSettingsStore.persist.hasHydrated()).toBe(true);
     expect(useSettingsStore.getState().theme).toBe(defaultSettingsState.theme);
-    expect(useSettingsStore.getState().timeLimit).toBe(0);
+    expect(useSettingsStore.getState().voiceVolume).toBe(0);
   });
 
   it("moves a user who kept the old defaults to five minutes of 4-7-8", async () => {
     mockGetItem.mockResolvedValue(
-      storedSettings({ selectedPatternPresetId: "square", timeLimit: 120_000, theme: "dark" }),
+      legacySettings({ selectedPatternPresetId: "square", timeLimit: 120_000, theme: "dark" }, 0),
     );
 
     const useSettingsStore = await loadSettingsStore();
 
-    expect(useSettingsStore.getState().selectedPatternPresetId).toBe("deep-calm");
-    expect(useSettingsStore.getState().timeLimit).toBe(300_000);
+    expect(useSettingsStore.getState().experiences[0]).toMatchObject({
+      patternPresetId: "deep-calm",
+      timeLimit: 300_000,
+    });
     expect(useSettingsStore.getState().theme).toBe("dark");
   });
 
-  it("keeps a pattern or a time limit that the user chose", async () => {
+  it("keeps the session and sauna time the user chose as their first two cards", async () => {
     mockGetItem.mockResolvedValue(
-      storedSettings({ selectedPatternPresetId: "square", timeLimit: 180_000 }),
+      legacySettings(
+        { selectedPatternPresetId: "square", timeLimit: 180_000, saunaTimeLimit: 1_200_000 },
+        1,
+      ),
     );
 
     const useSettingsStore = await loadSettingsStore();
+    const [breathing, sauna] = useSettingsStore.getState().experiences;
 
-    expect(useSettingsStore.getState().selectedPatternPresetId).toBe("square");
-    expect(useSettingsStore.getState().timeLimit).toBe(180_000);
+    expect(breathing).toMatchObject({ patternPresetId: "square", timeLimit: 180_000 });
+    expect(sauna).toMatchObject({ kind: "timer", timerDurationMs: 1_200_000 });
   });
 
   it("does not migrate a payload that is already current", async () => {
     mockGetItem.mockResolvedValue(
       JSON.stringify({
-        state: { ...defaultSettingsState, selectedPatternPresetId: "square", timeLimit: 120_000 },
-        version: 1,
+        state: { ...defaultSettingsState, experiences: [] },
+        version: 2,
       }),
     );
 
     const useSettingsStore = await loadSettingsStore();
 
-    expect(useSettingsStore.getState().selectedPatternPresetId).toBe("square");
-    expect(useSettingsStore.getState().timeLimit).toBe(120_000);
+    expect(useSettingsStore.getState().experiences).toEqual([]);
+  });
+
+  it("saves, updates and deletes experiences", async () => {
+    mockGetItem.mockResolvedValue(null);
+    const useSettingsStore = await loadSettingsStore();
+    const { saveExperience, deleteExperience, adjustExperienceTime } = useSettingsStore.getState();
+
+    const id = saveExperience(undefined, {
+      ...defaultExperienceSettings,
+      kind: "timer",
+      name: " Tea ",
+      timerDurationMs: 180_000,
+    });
+    expect(useSettingsStore.getState().experiences.at(-1)).toMatchObject({ id, name: "Tea" });
+
+    adjustExperienceTime(id, 1);
+    expect(useSettingsStore.getState().experiences.at(-1)?.timerDurationMs).toBe(240_000);
+
+    saveExperience(id, { ...defaultExperienceSettings, kind: "timer", name: "Green tea" });
+    expect(useSettingsStore.getState().experiences.filter((e) => e.id === id)).toHaveLength(1);
+    expect(useSettingsStore.getState().experiences.at(-1)?.name).toBe("Green tea");
+
+    deleteExperience(id);
+    expect(useSettingsStore.getState().experiences.some((e) => e.id === id)).toBe(false);
   });
 });

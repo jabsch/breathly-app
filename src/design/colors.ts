@@ -17,6 +17,7 @@ export const colors = {
   "slate-900": "#0f172a", // Dark background
   "blue-400": "#60a5fa", // Android settings tint
   "blue-500": "#3b82f6", // iOS settings tint
+  "red-400": "#f87171", // Delete action
   pastel: {
     orange: "#F2CAAD", // Home screen planet
     gray: "#E1E3DC", // Home screen planet

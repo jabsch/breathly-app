@@ -7,17 +7,22 @@ name: Start a breathing session and the sauna timer
     visible:
       id: "home.screen"
     timeout: 10000
-# The new defaults: five minutes of 4-7-8, and fifteen minutes of sauna.
+# The two cards every install starts with: five minutes of 4-7-8, and fifteen minutes of sauna.
 - assertVisible:
-    id: "sauna.value"
+    id: "home.experience.breathing.value"
+    text: "5 min"
+- assertVisible:
+    id: "home.experience.sauna.value"
     text: "15 min"
+- assertVisible:
+    id: "home.create-experience"
 - tapOn:
-    id: "sauna.start"
+    id: "home.experience.sauna.start"
 - tapOn:
-    id: "home.start-session"
+    id: "home.experience.breathing.start"
 - extendedWaitUntil:
     visible:
       id: "exercise.running"
     timeout: 15000
 - assertVisible:
-    id: "sauna.pause"
+    id: "exercise.experience.sauna.pause"

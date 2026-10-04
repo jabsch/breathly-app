@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - claude/screen-off-timer-478-default-c3xlu9
+      - claude/saved-experiences-o5xqcw
 
 permissions:
   contents: write
