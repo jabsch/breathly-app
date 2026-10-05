@@ -109,6 +109,15 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
           script: bash scripts/android-smoke-test.sh "breathly-v${{ env.VERSION_NAME }}.apk"
 
+      # Maestro keeps a screenshot and the view hierarchy of every failed step.
+      - name: Keep the smoke test's debug output
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-debug
+          path: ~/.maestro/tests
+          if-no-files-found: ignore
+
       - name: Publish the APK as a prerelease
         uses: softprops/action-gh-release@v2
         with:
