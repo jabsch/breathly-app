@@ -302,7 +302,7 @@ const Card: FC<PropsWithChildren<CardFrameProps>> = ({
             <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
               {title}
             </Text>
-            {onPress && <Ionicons name="chevron-back" size={16} color={theme.textSecondary} />}
+            {onPress && <Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />}
           </View>
           {details !== undefined && (
             <Text style={[styles.details, { color: theme.textSecondary }]} numberOfLines={1}>

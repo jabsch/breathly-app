@@ -11,7 +11,7 @@ interface Props {
   onNavigate: (route: "Settings" | "About") => unknown;
 }
 
-// The menu that slides in from the right: a swipe left on the home page, or the menu button.
+// The menu that slides in from the left: a swipe right on the home page, or the menu button.
 export const HomeMenu: FC<Props> = ({ onNavigate }) => {
   const theme = useThemeColors();
   return (

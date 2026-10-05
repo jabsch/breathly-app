@@ -42,7 +42,7 @@ export const useHomeScreenStatusStore = create<{
 const swipeStartDistance = 16;
 const swipeDirectionRatio = 1.5;
 const swipeVelocityThreshold = 0.4;
-const pageOrder: HomePage[] = ["exercise", "home", "menu"];
+const pageOrder: HomePage[] = ["menu", "home", "exercise"];
 const menuWidthMax = 320;
 
 export const HomeScreen: FC<NativeStackScreenProps<RootStackParamList, "Home">> = ({
@@ -78,7 +78,7 @@ export const HomeScreen: FC<NativeStackScreenProps<RootStackParamList, "Home">> 
     }
   }, [isHomeScreenReady, markHomeScreenAsReady]);
 
-  // The pages sit side by side: -1 is the session, 0 the cards, 1 the menu.
+  // The pages sit side by side: -1 is the menu, 0 the cards, 1 the session.
   const position = useRef(new Animated.Value(homePagePositions[page])).current;
 
   // A session that ends leaves no page to stay on.
@@ -114,13 +114,13 @@ export const HomeScreen: FC<NativeStackScreenProps<RootStackParamList, "Home">> 
   const dragStartRef = useRef(0);
 
   const panResponder = useMemo(() => {
-    const lowestPosition = () => (pagerStateRef.current.hasExercise ? -1 : 0);
+    const highestPosition = () => (pagerStateRef.current.hasExercise ? 1 : 0);
     const isPageSwipe = (dx: number, dy: number) => {
       if (Math.abs(dx) < swipeStartDistance || Math.abs(dx) < Math.abs(dy) * swipeDirectionRatio)
         return false;
       const current = homePagePositions[pagerStateRef.current.page];
-      // A swipe left moves toward the menu, a swipe right toward the session.
-      return dx < 0 ? current < 1 : current > lowestPosition();
+      // A swipe right moves toward the menu, a swipe left toward the session.
+      return dx < 0 ? current < highestPosition() : current > -1;
     };
     return PanResponder.create({
       onMoveShouldSetPanResponderCapture: (_event, gesture) => isPageSwipe(gesture.dx, gesture.dy),
@@ -131,7 +131,7 @@ export const HomeScreen: FC<NativeStackScreenProps<RootStackParamList, "Home">> 
       },
       onPanResponderMove: (_event, gesture) => {
         const next = dragStartRef.current - gesture.dx / pagerStateRef.current.width;
-        position.setValue(Math.min(1, Math.max(lowestPosition(), next)));
+        position.setValue(Math.min(highestPosition(), Math.max(-1, next)));
       },
       onPanResponderRelease: (_event, gesture) => {
         const { width: pageWidth, page: currentPage } = pagerStateRef.current;
@@ -139,7 +139,7 @@ export const HomeScreen: FC<NativeStackScreenProps<RootStackParamList, "Home">> 
         let target = current;
         if (gesture.dx < -pageWidth / 4 || gesture.vx < -swipeVelocityThreshold) target += 1;
         else if (gesture.dx > pageWidth / 4 || gesture.vx > swipeVelocityThreshold) target -= 1;
-        target = Math.min(1, Math.max(lowestPosition(), target));
+        target = Math.min(highestPosition(), Math.max(-1, target));
         const targetPage = pageOrder[target + 1] ?? "home";
         if (targetPage === currentPage) {
           Animated.spring(position, {
@@ -175,23 +175,23 @@ export const HomeScreen: FC<NativeStackScreenProps<RootStackParamList, "Home">> 
   );
 
   const homeTranslateX = position.interpolate({
-    inputRange: [-1, 0],
-    outputRange: [width, 0],
-    extrapolate: "clamp",
-  });
-  const exerciseTranslateX = position.interpolate({
-    inputRange: [-1, 0],
+    inputRange: [0, 1],
     outputRange: [0, -width],
     extrapolate: "clamp",
   });
-  const menuTranslateX = position.interpolate({
+  const exerciseTranslateX = position.interpolate({
     inputRange: [0, 1],
-    outputRange: [menuWidth, 0],
+    outputRange: [width, 0],
+    extrapolate: "clamp",
+  });
+  const menuTranslateX = position.interpolate({
+    inputRange: [-1, 0],
+    outputRange: [0, -menuWidth],
     extrapolate: "clamp",
   });
   const backdropOpacity = position.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, 0.5],
+    inputRange: [-1, 0],
+    outputRange: [0.5, 0],
     extrapolate: "clamp",
   });
 
@@ -360,8 +360,8 @@ const styles = StyleSheet.create({
   },
   menu: {
     bottom: 0,
+    left: 0,
     position: "absolute",
-    right: 0,
     top: 0,
   },
   menuButton: {
@@ -409,7 +409,7 @@ const styles = StyleSheet.create({
   topBar: {
     alignSelf: "stretch",
     flexDirection: "row",
-    justifyContent: "flex-end",
+    justifyContent: "flex-start",
     paddingHorizontal: 8,
     paddingTop: 4,
   },
