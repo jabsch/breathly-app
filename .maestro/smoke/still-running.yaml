@@ -32,9 +32,9 @@ name: Breathing session and sauna timer are still running
     timeout: 5000
 - assertVisible:
     id: "exercise.experience.sauna.resume"
-# Swiping left shows the home page and leaves the session running; its card brings it back.
+# Swiping right shows the home page and leaves the session running; its card brings it back.
 - swipe:
-    direction: LEFT
+    direction: RIGHT
 - extendedWaitUntil:
     visible:
       id: "home.screen"
@@ -47,15 +47,15 @@ name: Breathing session and sauna timer are still running
     visible:
       id: "exercise.running"
     timeout: 5000
-# Swiping left twice from the session reaches the menu; back closes it.
+# Swiping right twice from the session reaches the menu; back closes it.
 - swipe:
-    direction: LEFT
+    direction: RIGHT
 - extendedWaitUntil:
     visible:
       id: "home.screen"
     timeout: 5000
 - swipe:
-    direction: LEFT
+    direction: RIGHT
 - extendedWaitUntil:
     visible:
       id: "menu.settings"

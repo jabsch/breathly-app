@@ -24,12 +24,15 @@ Questions are ordered by how often they've been asked, most asked first. The cou
 - [Can I leave a session running and go back to the home page?](#can-i-leave-a-session-running-and-go-back-to-the-home-page)
 - [What do the countdown numbers, spoken numbers and soft beeps do?](#what-do-the-countdown-numbers-spoken-numbers-and-soft-beeps-do)
 - [How do I change the volume of the voice and beeps, or keep my music playing?](#how-do-i-change-the-volume-of-the-voice-and-beeps-or-keep-my-music-playing)
+- [How do I keep it updated with Obtainium?](#how-do-i-keep-it-updated-with-obtainium)
 
 ## Where do I get the APK, and how do I install it?
 
-Download the newest `.apk` from the [releases page](https://github.com/jabsch/breathly-app/releases).
-The first build is [Breathly test build b263c49](https://github.com/jabsch/breathly-app/releases/tag/apk-b263c49).
-Each push to the development branch builds, tests and publishes a new one.
+The easiest way is [Obtainium](https://github.com/ImranR98/Obtainium), which also keeps it
+updated (see [How do I keep it updated with Obtainium?](#how-do-i-keep-it-updated-with-obtainium)).
+Or download the newest `.apk` from the [releases page](https://github.com/jabsch/breathly-app/releases).
+Every change merged to `master` builds, tests and publishes a new release, named after its version
+(for example `v2.3.12`). Builds of work in progress are marked as prereleases.
 
 1. If Breathly from the Play Store or F-Droid is installed, uninstall it first. These builds are
    test-signed with the same app ID, so Android won't install them over the store version.
@@ -40,7 +43,7 @@ Each push to the development branch builds, tests and publishes a new one.
 ## Does the app use dark mode?
 
 Yes, the app now opens in dark mode. You can switch to light, or to "Use system theme", in
-Settings, from the menu (swipe left on the home page, or tap ☰).
+Settings, from the menu (swipe right on the home page, or tap ☰ in the top left).
 
 ## How was it tested?
 
@@ -166,9 +169,10 @@ edit it. Delete an experience from the bottom of its edit page.
 
 ## Can I leave a session running and go back to the home page?
 
-Yes. Swipe left on a running session, or tap the cards button between pause and close, and the
-home page comes back while the session keeps going. Swipe right, or tap the session's card, to
-return to it. Swiping left on the home page opens the menu, with Settings, FAQ and About.
+Yes. Swipe right on a running session, or tap the cards button between pause and close, and the
+home page comes back while the session keeps going. Swipe left, or tap the session's card, to
+return to it. Swiping right on the home page opens the menu from the left, with Settings, FAQ and
+About. The ☰ button in the top left opens it too.
 
 ## What do the countdown numbers, spoken numbers and soft beeps do?
 
@@ -187,3 +191,16 @@ each have a volume, and each has an **Other audio** choice for what music from o
 while they play: keep playing, lower, or pause. Android decides how far "lower" goes; apps can't
 set it. By default the voice lowers music and the beeps leave it alone. The spoken numbers come
 from text-to-speech and don't change other audio.
+
+## How do I keep it updated with Obtainium?
+
+1. Install [Obtainium](https://github.com/ImranR98/Obtainium/releases) on the phone.
+2. In Obtainium, tap **Add App** and paste `https://github.com/jabsch/breathly-app` as the source
+   URL. Leave the other options as they are, and tap **Add**.
+3. Tap **Install**. If an older Breathly from these releases is already installed, Obtainium
+   updates it in place and keeps your saved experiences.
+
+Obtainium then checks for new releases and offers each one as an update. It follows the full
+releases built from `master` and skips the prereleases; turn on **Include prereleases** for the
+app in Obtainium to get those too. Every build is signed with the same test key and has a higher
+version than the last, so each one installs over the one before.

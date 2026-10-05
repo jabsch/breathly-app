@@ -1,11 +1,17 @@
 name: Android APK
 
-# Builds the release APK, smoke tests it on an Android 11 emulator, and publishes it as a
-# prerelease so it can be installed straight from GitHub.
+# Builds the release APK, smoke tests it on an Android 11 emulator, and publishes it on the
+# releases page so it can be installed straight from GitHub. A build of master is a full
+# release, the one Obtainium follows; a build of any other branch is a prerelease.
+#
+# Every build gets its own version, from the run number: 2.3.<run> as the version name and the
+# release tag (v2.3.<run>), and a version code that always goes up, so Android and Obtainium
+# both see each build as an update. Every build is signed with the same key.
 on:
   workflow_dispatch:
   push:
     branches:
+      - master
       - claude/screen-off-timer-478-default-c3xlu9
       - claude/saved-experiences-o5xqcw
 
@@ -44,6 +50,21 @@ jobs:
       - name: Install locked dependencies
         run: bun install --frozen-lockfile
 
+      # Above the version code of the last Play Store release (3145750), so these install as
+      # updates over it, and one higher on every run.
+      - name: Set the version of this build
+        run: |
+          version_name="2.3.${{ github.run_number }}"
+          version_code=$((3146000 + ${{ github.run_number }}))
+          echo "VERSION_NAME=$version_name" >> "$GITHUB_ENV"
+          node -e '
+            const fs = require("fs");
+            const config = JSON.parse(fs.readFileSync("app.json", "utf8"));
+            config.expo.version = process.argv[1];
+            config.expo.android.versionCode = Number(process.argv[2]);
+            fs.writeFileSync("app.json", JSON.stringify(config, null, 2) + "\n");
+          ' "$version_name" "$version_code"
+
       - name: Generate the native Android project
         run: npx expo prebuild --platform android --no-install --clean
 
@@ -59,10 +80,7 @@ jobs:
           "-Dorg.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=1g"
 
       - name: Name the APK
-        run: |
-          short_sha="$(git rev-parse --short HEAD)"
-          echo "SHORT_SHA=$short_sha" >> "$GITHUB_ENV"
-          cp android/app/build/outputs/apk/release/app-release.apk "breathly-$short_sha.apk"
+        run: cp android/app/build/outputs/apk/release/app-release.apk "breathly-v$VERSION_NAME.apk"
 
       - name: Keep the APK with the run
         uses: actions/upload-artifact@v4
@@ -89,17 +107,17 @@ jobs:
           target: google_apis
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
-          script: bash scripts/android-smoke-test.sh "breathly-${{ env.SHORT_SHA }}.apk"
+          script: bash scripts/android-smoke-test.sh "breathly-v${{ env.VERSION_NAME }}.apk"
 
       - name: Publish the APK as a prerelease
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: apk-${{ env.SHORT_SHA }}
+          tag_name: v${{ env.VERSION_NAME }}
           target_commitish: ${{ github.sha }}
-          name: Breathly test build ${{ env.SHORT_SHA }}
-          prerelease: true
+          name: Breathly ${{ env.VERSION_NAME }}
+          prerelease: ${{ github.ref != 'refs/heads/master' }}
           body: |
-            Test build from `${{ github.ref_name }}` at ${{ github.sha }}. It passed the Android 11 emulator smoke test.
+            Build of `${{ github.ref_name }}` at ${{ github.sha }}. It passed the Android 11 emulator smoke test.
 
-            Install it on the phone by opening the APK and allowing installs from this source. It is signed with a debug key: if the Play Store version of Breathly is installed, uninstall it first.
-          files: breathly-${{ env.SHORT_SHA }}.apk
+            Install it with Obtainium (see the FAQ), or by opening the APK and allowing installs from this source. It is signed with a test key: if the Play Store version of Breathly is installed, uninstall it first.
+          files: breathly-v${{ env.VERSION_NAME }}.apk
