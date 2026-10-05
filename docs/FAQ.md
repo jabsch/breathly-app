@@ -224,4 +224,5 @@ instead, like swiping anywhere else. The lines between them show where each one 
 
 In **Settings**, under **Home screen**, you can choose how many timer rows show (Off, 1, 2, 3, 5,
 or all of them in a list that scrolls up; 1 by default), the height of the breathing section and
-of each timer row, and the style and color of the lines.
+of each timer row, and the style and color of the lines. They start low, so the top half of the
+screen stays clear, as in the original app; a taller timer row puts its name above the time.

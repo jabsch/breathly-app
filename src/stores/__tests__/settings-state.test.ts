@@ -211,6 +211,19 @@ describe("settings migration", () => {
 
   it("leaves a current payload alone", () => {
     const current = { ...defaultSettingsState, experiences: [] };
-    expect(migratePersistedSettingsState(current, 2)).toBe(current);
+    expect(migratePersistedSettingsState(current, 3)).toBe(current);
+  });
+
+  it("lowers the home heights a version 2 user never changed, and keeps chosen ones", () => {
+    const untouched = { ...defaultSettingsState, breathingSectionHeight: 200, timerRowHeight: 80 };
+    expect(migratePersistedSettingsState(untouched, 2)).toMatchObject({
+      breathingSectionHeight: 140,
+      timerRowHeight: 56,
+    });
+    const chosen = { ...defaultSettingsState, breathingSectionHeight: 260, timerRowHeight: 80 };
+    expect(migratePersistedSettingsState(chosen, 2)).toMatchObject({
+      breathingSectionHeight: 260,
+      timerRowHeight: 56,
+    });
   });
 });
