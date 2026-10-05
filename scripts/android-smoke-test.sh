@@ -6,6 +6,28 @@ set -euo pipefail
 apk="$1"
 package="com.mmazzarolo.breathly"
 
+# On a failure, print what was on screen: the debug files Maestro keeps are not always easy to
+# reach, and the run log always is.
+print_screen() {
+  echo "::group::Screen at the failure"
+  adb shell wm size || true
+  adb shell wm density || true
+  maestro hierarchy 2>/dev/null | python3 -c '
+import json, sys
+def walk(node, depth=0):
+    attrs = node.get("attributes", {})
+    label = attrs.get("resource-id") or attrs.get("text") or attrs.get("accessibilityText")
+    if label:
+        print("  " * min(depth, 20) + label + " " + attrs.get("bounds", "") +
+              (" enabled" if attrs.get("enabled") == "true" else ""))
+    for child in node.get("children", []):
+        walk(child, depth + 1)
+walk(json.load(sys.stdin))
+' || true
+  echo "::endgroup::"
+}
+trap print_screen ERR
+
 adb install -r "$apk"
 adb logcat -c
 

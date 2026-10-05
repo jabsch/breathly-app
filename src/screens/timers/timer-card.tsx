@@ -458,8 +458,10 @@ const ValueText: FC<PropsWithChildren<{ testID: string }>> = ({ testID, children
         layout === "section" && styles.sectionText,
         layout === "row" && styles.rowText,
         { color: theme.text, fontSize: size, lineHeight: size * 1.5 },
-        // Wide enough for "60 min" or "00:00 paused" not to be cut short.
+        // A width to fit into: sized by its text alone, Android lays a text that shrinks to fit
+        // out with no width at all. Wide enough for "60 min"; "00:00 paused" shrinks.
         layout === "section" && { minWidth: 96 * scale },
+        layout === "row" && { minWidth: 64 * scale },
       ]}
       numberOfLines={1}
       adjustsFontSizeToFit
