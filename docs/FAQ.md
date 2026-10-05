@@ -24,12 +24,12 @@ Questions are ordered by how often they've been asked, most asked first. The cou
 - [Can I leave a session running and go back to the home page?](#can-i-leave-a-session-running-and-go-back-to-the-home-page)
 - [What do the countdown numbers, spoken numbers and soft beeps do?](#what-do-the-countdown-numbers-spoken-numbers-and-soft-beeps-do)
 - [How do I change the volume of the voice and beeps, or keep my music playing?](#how-do-i-change-the-volume-of-the-voice-and-beeps-or-keep-my-music-playing)
-- [How do I keep it updated with Obtainium?](#how-do-i-keep-it-updated-with-obtainium)
+- [How do I keep it updated with ObtainX?](#how-do-i-keep-it-updated-with-obtainx)
 
 ## Where do I get the APK, and how do I install it?
 
-The easiest way is [Obtainium](https://github.com/ImranR98/Obtainium), which also keeps it
-updated (see [How do I keep it updated with Obtainium?](#how-do-i-keep-it-updated-with-obtainium)).
+The easiest way is [ObtainX](https://github.com/bikram-agarwal/ObtainX), which also keeps it
+updated (see [How do I keep it updated with ObtainX?](#how-do-i-keep-it-updated-with-obtainx)).
 Or download the newest `.apk` from the [releases page](https://github.com/jabsch/breathly-app/releases).
 Every change merged to `master` builds, tests and publishes a new release, named after its version
 (for example `v2.3.12`). Builds of work in progress are marked as prereleases.
@@ -192,15 +192,20 @@ while they play: keep playing, lower, or pause. Android decides how far "lower" 
 set it. By default the voice lowers music and the beeps leave it alone. The spoken numbers come
 from text-to-speech and don't change other audio.
 
-## How do I keep it updated with Obtainium?
+## How do I keep it updated with ObtainX?
 
-1. Install [Obtainium](https://github.com/ImranR98/Obtainium/releases) on the phone.
-2. In Obtainium, tap **Add App** and paste `https://github.com/jabsch/breathly-app` as the source
-   URL. Leave the other options as they are, and tap **Add**.
-3. Tap **Install**. If an older Breathly from these releases is already installed, Obtainium
-   updates it in place and keeps your saved experiences.
+[ObtainX](https://github.com/bikram-agarwal/ObtainX) installs apps from their GitHub releases and
+keeps them updated. It is a fork of [Obtainium](https://github.com/ImranR98/Obtainium), so the same
+steps work in either.
 
-Obtainium then checks for new releases and offers each one as an update. It follows the full
-releases built from `master` and skips the prereleases; turn on **Include prereleases** for the
-app in Obtainium to get those too. Every build is signed with the same test key and has a higher
-version than the last, so each one installs over the one before.
+1. Install ObtainX on the phone, from [F-Droid](https://f-droid.org/en/packages/dev.bikram.obtainx/)
+   or its [releases page](https://github.com/bikram-agarwal/ObtainX/releases).
+2. Add an app with `https://github.com/jabsch/breathly-app` as the source URL. Leave the other
+   options as they are.
+3. Install it. If an older Breathly from these releases is already installed, it updates in place
+   and keeps your saved experiences.
+
+It then checks for new releases and offers each one as an update. It follows the full releases
+built from `master` and skips the prereleases unless you turn on prereleases for the app. Every
+build is signed with the same test key and has a higher version than the last, so each one
+installs over the one before.

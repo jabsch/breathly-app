@@ -2,10 +2,10 @@ name: Android APK
 
 # Builds the release APK, smoke tests it on an Android 11 emulator, and publishes it on the
 # releases page so it can be installed straight from GitHub. A build of master is a full
-# release, the one Obtainium follows; a build of any other branch is a prerelease.
+# release, the one ObtainX follows; a build of any other branch is a prerelease.
 #
 # Every build gets its own version, from the run number: 2.3.<run> as the version name and the
-# release tag (v2.3.<run>), and a version code that always goes up, so Android and Obtainium
+# release tag (v2.3.<run>), and a version code that always goes up, so Android and ObtainX
 # both see each build as an update. Every build is signed with the same key.
 on:
   workflow_dispatch:
@@ -119,5 +119,5 @@ jobs:
           body: |
             Build of `${{ github.ref_name }}` at ${{ github.sha }}. It passed the Android 11 emulator smoke test.
 
-            Install it with Obtainium (see the FAQ), or by opening the APK and allowing installs from this source. It is signed with a test key: if the Play Store version of Breathly is installed, uninstall it first.
+            Install it with ObtainX (see the FAQ), or by opening the APK and allowing installs from this source. It is signed with a test key: if the Play Store version of Breathly is installed, uninstall it first.
           files: breathly-v${{ env.VERSION_NAME }}.apk
