@@ -25,6 +25,7 @@ Questions are ordered by how often they've been asked, most asked first. The cou
 - [What do the countdown numbers, spoken numbers and soft beeps do?](#what-do-the-countdown-numbers-spoken-numbers-and-soft-beeps-do)
 - [How do I change the volume of the voice and beeps, or keep my music playing?](#how-do-i-change-the-volume-of-the-voice-and-beeps-or-keep-my-music-playing)
 - [How do I keep it updated with ObtainX?](#how-do-i-keep-it-updated-with-obtainx)
+- [How do I switch between my breathing exercises and timers on the home page?](#how-do-i-switch-between-my-breathing-exercises-and-timers-on-the-home-page)
 
 ## Where do I get the APK, and how do I install it?
 
@@ -80,21 +81,22 @@ Source: [`modules/background-session`](../modules/background-session),
 
 ## What is the default session?
 
-Five minutes of 4-7-8 breathing ("4-7-8 Deep Calm"), the first card on the home page. If you used
+Five minutes of 4-7-8 breathing ("4-7-8 Deep Calm"), in the breathing section of the home page. If you used
 the original app's defaults (Square, 2 minutes), they move to the new defaults on first launch.
-Settings you changed yourself are kept: the session you had set up becomes that first card, and
-your sauna time becomes the "Sauna timer" card.
+Settings you changed yourself are kept: the session you had set up becomes that first breathing
+experience, and your sauna time becomes the "Sauna timer".
 
 Source: [`src/stores/settings-state.ts`](../src/stores/settings-state.ts).
 
 ## How does the sauna timer work?
 
-The sauna timer is a saved timer card on the home page. It defaults to 15 minutes, and the − and +
+The sauna timer is a saved timer, in the row above the breathing section. It defaults to 15 minutes, and the − and +
 buttons change it one minute at a time. Tap the pencil to rename it or change its length.
 
 You can add as many timers as you like: tap **Create Experience**, open **Pattern**, pick **No
-Pattern: Custom Timer** and give it a name. Timers run at the same time as each other and next to
-a breathing session, and the running ones also show on the session screen.
+Pattern: Custom Timer** and give it a name. Swipe the timer row to reach the others, or show more
+rows in Settings. Timers run at the same time as each other and next to a breathing session, and
+the running ones also show on the session screen.
 
 When one ends, the phone vibrates and plays the bell, even if the screen is off and even if step
 vibrations are turned off.
@@ -104,7 +106,7 @@ Source: [`src/screens/timers`](../src/screens/timers) and
 
 ## Can I pause the two timers separately?
 
-Yes. The breathing session has its own pause button next to the close button, and on its card,
+Yes. The breathing session has its own pause button next to the close button, and on the home page,
 and each timer has its own pause, resume and stop buttons. Pausing, resuming or stopping one never
 touches the others. Only one breathing session runs at a time: starting another one ends the one
 that is running.
@@ -161,16 +163,17 @@ available (this public repository covers that), and the license and copyright no
 
 Tap **Create Experience** at the bottom of the home page. Pick a breathing pattern (or **No
 Pattern: Custom Timer** for a plain timer), a voice, the counting options and a length, then tap
-**Save Experience**. It shows up as a card on the home page, and the button stays at the bottom
-however many cards there are.
+**Save Experience**. It shows up on the home page right away: a breathing experience in the
+breathing section at the bottom, a timer in the row just above it. The button stays at the very
+bottom.
 
-Each card shows its pattern, voice and time, with − and + for the time, Start, and a pencil to
+Each one shows its pattern, voice and time, with − and + for the time, Start, and a pencil to
 edit it. Delete an experience from the bottom of its edit page.
 
 ## Can I leave a session running and go back to the home page?
 
 Yes. Swipe right on a running session, or tap the cards button between pause and close, and the
-home page comes back while the session keeps going. Swipe left, or tap the session's card, to
+home page comes back while the session keeps going. Swipe left, or tap its name on the home page, to
 return to it. Swiping right on the home page opens the menu from the left, with Settings, FAQ and
 About. The ☰ button in the top left opens it too.
 
@@ -209,3 +212,16 @@ It then checks for new releases and offers each one as an update. It follows the
 built from `master` and skips the prereleases unless you turn on prereleases for the app. Every
 build is signed with the same test key and has a higher version than the last, so each one
 installs over the one before.
+
+## How do I switch between my breathing exercises and timers on the home page?
+
+The home page shows one breathing exercise, in the section at the bottom. Swipe left or right on
+it to go through the others you saved; the dots under it show where you are. Timers sit in rows
+above it, and only once you have saved one. Swipe a row to go through your timers.
+
+Tap the lock on a section or row to keep it on what it shows. Swiping on it then turns the page
+instead, like swiping anywhere else. The lines between them show where each one ends.
+
+In **Settings**, under **Home screen**, you can choose how many timer rows show (Off, 1, 2, 3, 5,
+or all of them in a list that scrolls up; 1 by default), the height of the breathing section and
+of each timer row, and the style and color of the lines.

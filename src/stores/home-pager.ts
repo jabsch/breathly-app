@@ -15,3 +15,8 @@ export const useHomePagerStore = create<HomePagerStore>()((set) => ({
   page: "home",
   setPage: (page) => set({ page }),
 }));
+
+// Set when a touch starts on a breathing section or timer row that a swipe cycles. The pager
+// then leaves sideways swipes to it, instead of turning the page. A locked one, or one with
+// nothing to cycle to, leaves it unset, so swiping on it turns the page as anywhere else.
+export const carouselTouch = { active: false };

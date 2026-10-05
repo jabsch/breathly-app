@@ -196,4 +196,25 @@ describe("settings persistence", () => {
     deleteExperience(id);
     expect(useSettingsStore.getState().experiences.some((e) => e.id === id)).toBe(false);
   });
+
+  it("puts a saved experience on the home page", async () => {
+    mockGetItem.mockResolvedValue(null);
+    const useSettingsStore = await loadSettingsStore();
+    const { saveExperience, setTimerSlotLocked } = useSettingsStore.getState();
+
+    const breathingId = saveExperience(undefined, defaultExperienceSettings);
+    expect(useSettingsStore.getState().breathingSlot).toEqual({ id: breathingId, locked: false });
+
+    setTimerSlotLocked(0, true);
+    const timerId = saveExperience(undefined, { ...defaultExperienceSettings, kind: "timer" });
+    expect(useSettingsStore.getState().timerSlots).toEqual([{ id: timerId, locked: true }]);
+
+    // A timer that already has a row stays in it.
+    useSettingsStore.getState().showInTimerSlot(1, "sauna");
+    saveExperience("sauna", { ...defaultExperienceSettings, kind: "timer", name: "Sauna" });
+    expect(useSettingsStore.getState().timerSlots.map((slot) => slot.id)).toEqual([
+      timerId,
+      "sauna",
+    ]);
+  });
 });

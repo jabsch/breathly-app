@@ -14,6 +14,19 @@ export type Theme = "dark" | "light";
 // What other apps' audio (music, a podcast) does while a cue plays. Android only lets an app
 // ask for one of these; how far "lower" goes is up to the system.
 export type OtherAudioMode = "keep" | "lower" | "pause";
+// How many timer rows the home page shows above the breathing section. Zero hides them, "all"
+// gives every timer a row of its own, in a list that scrolls up.
+export type TimerRowsSetting = 0 | 1 | 2 | 3 | 5 | "all";
+export type DividerStyle = "ornament" | "fade" | "double" | "dotted" | "simple" | "none";
+export type DividerColor = "peach" | "gold" | "lavender" | "sky" | "theme";
+
+// Which saved experience a place on the home page shows, and whether swiping it to the next
+// one is locked. The id can point at an experience that has since been deleted: the home page
+// falls back to another one rather than trusting it.
+export interface HomeSlot {
+  id: string | null;
+  locked: boolean;
+}
 
 export interface PersistedSettingsState {
   experiences: Experience[];
@@ -25,6 +38,15 @@ export interface PersistedSettingsState {
   beepVolume: number;
   voiceOtherAudio: OtherAudioMode;
   beepOtherAudio: OtherAudioMode;
+  timerRows: TimerRowsSetting;
+  // In density-independent pixels, in steps of the matching `*HeightStep`.
+  breathingSectionHeight: number;
+  timerRowHeight: number;
+  dividerStyle: DividerStyle;
+  dividerColor: DividerColor;
+  breathingSlot: HomeSlot;
+  // The timer rows from the breathing section up: the first one sits right above it.
+  timerSlots: HomeSlot[];
 }
 
 // A tuple, not an array: `normalizeExperience` maps over this to build the four steps, so its
@@ -47,6 +69,20 @@ export const minimumTimerDurationMs = ms("1 min");
 export const maximumTimerDurationMs = ms("180 min");
 export const volumeStepPercent = 10;
 export const maximumExperienceNameLength = 40;
+export const breathingSectionHeightLimits: [number, number] = [160, 360];
+export const breathingSectionHeightStep = 20;
+export const timerRowHeightLimits: [number, number] = [72, 160];
+export const timerRowHeightStep = 8;
+export const timerRowsOptions: TimerRowsSetting[] = [0, 1, 2, 3, 5, "all"];
+export const dividerStyles: DividerStyle[] = [
+  "ornament",
+  "fade",
+  "double",
+  "dotted",
+  "simple",
+  "none",
+];
+export const dividerColors: DividerColor[] = ["peach", "gold", "lavender", "sky", "theme"];
 
 export const defaultExperienceSettings: ExperienceSettings = {
   kind: "breathing",
@@ -88,6 +124,13 @@ export const defaultSettingsState: PersistedSettingsState = {
   voiceOtherAudio: "lower",
   // Lowering the music once a second would pump it up and down all session.
   beepOtherAudio: "keep",
+  timerRows: 1,
+  breathingSectionHeight: 200,
+  timerRowHeight: 80,
+  dividerStyle: "ornament",
+  dividerColor: "peach",
+  breathingSlot: { id: null, locked: false },
+  timerSlots: [],
 };
 
 const guidedBreathingModes: GuidedBreathingMode[] = ["laura", "paul", "bell", "disabled"];
@@ -141,6 +184,24 @@ export const adjustTimerDuration = (durationMs: number, deltaMs: number) =>
     maximumTimerDurationMs,
     defaultExperienceSettings.timerDurationMs,
   );
+
+export const adjustHeight = (
+  height: number,
+  deltaPx: number,
+  [minimum, maximum]: [number, number],
+  fallback: number,
+) => clampFiniteNumber(height + deltaPx, minimum, maximum, fallback);
+
+const normalizeHomeSlot = (value: unknown): HomeSlot => {
+  const candidate = isRecord(value) ? value : {};
+  return {
+    id: typeof candidate.id === "string" && candidate.id !== "" ? candidate.id : null,
+    locked: booleanOr(candidate.locked, false),
+  };
+};
+
+// More slots than there could ever be rows are leftovers, not settings.
+const maximumTimerSlots = 50;
 
 export const adjustVolume = (volume: number, deltaPercent: number) =>
   clampFiniteNumber(volume + deltaPercent, 0, 100, 100);
@@ -222,6 +283,25 @@ export const normalizePersistedSettingsState = (value: unknown): PersistedSettin
     beepVolume: clampFiniteNumber(candidate.beepVolume, 0, 100, defaults.beepVolume),
     voiceOtherAudio: oneOf(candidate.voiceOtherAudio, otherAudioModes, defaults.voiceOtherAudio),
     beepOtherAudio: oneOf(candidate.beepOtherAudio, otherAudioModes, defaults.beepOtherAudio),
+    timerRows: oneOf(candidate.timerRows, timerRowsOptions, defaults.timerRows),
+    breathingSectionHeight: clampFiniteNumber(
+      candidate.breathingSectionHeight,
+      breathingSectionHeightLimits[0],
+      breathingSectionHeightLimits[1],
+      defaults.breathingSectionHeight,
+    ),
+    timerRowHeight: clampFiniteNumber(
+      candidate.timerRowHeight,
+      timerRowHeightLimits[0],
+      timerRowHeightLimits[1],
+      defaults.timerRowHeight,
+    ),
+    dividerStyle: oneOf(candidate.dividerStyle, dividerStyles, defaults.dividerStyle),
+    dividerColor: oneOf(candidate.dividerColor, dividerColors, defaults.dividerColor),
+    breathingSlot: normalizeHomeSlot(candidate.breathingSlot),
+    timerSlots: Array.isArray(candidate.timerSlots)
+      ? candidate.timerSlots.slice(0, maximumTimerSlots).map(normalizeHomeSlot)
+      : defaults.timerSlots,
   };
 };
 

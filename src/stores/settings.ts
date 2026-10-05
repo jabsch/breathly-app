@@ -8,7 +8,10 @@ import {
   type StorageValue,
 } from "zustand/middleware";
 import {
+  adjustHeight,
   adjustTimeLimit,
+  breathingSectionHeightLimits,
+  breathingSectionHeightStep,
   adjustTimerDuration,
   adjustVolume,
   defaultSettingsState,
@@ -17,9 +20,15 @@ import {
   normalizeExperienceSettings,
   persistedSettingsVersion,
   timeLimitStepMs,
+  timerRowHeightLimits,
+  timerRowHeightStep,
+  type DividerColor,
+  type DividerStyle,
+  type HomeSlot,
   type OtherAudioMode,
   type PersistedSettingsState,
   type Theme,
+  type TimerRowsSetting,
 } from "@breathly/stores/settings-state";
 import type { ExperienceSettings } from "@breathly/types/experience";
 import { delay } from "@breathly/utils/delay";
@@ -39,7 +48,24 @@ interface SettingsStore extends PersistedSettingsState {
   setVibrationEnabled: (vibrationEnabled: boolean) => unknown;
   adjustCueVolume: (cueType: CueType, deltaPercent: number) => unknown;
   setCueOtherAudio: (cueType: CueType, mode: OtherAudioMode) => unknown;
+  // The home page: which experience each place shows, swipe locks, and how it looks.
+  showInBreathingSlot: (id: string) => unknown;
+  setBreathingSlotLocked: (locked: boolean) => unknown;
+  showInTimerSlot: (row: number, id: string) => unknown;
+  setTimerSlotLocked: (row: number, locked: boolean) => unknown;
+  setTimerRows: (timerRows: TimerRowsSetting) => unknown;
+  adjustBreathingSectionHeight: (direction: 1 | -1) => unknown;
+  adjustTimerRowHeight: (direction: 1 | -1) => unknown;
+  setDividerStyle: (dividerStyle: DividerStyle) => unknown;
+  setDividerColor: (dividerColor: DividerColor) => unknown;
 }
+
+const withSlot = (slots: HomeSlot[], row: number, changes: Partial<HomeSlot>) => {
+  const next = [...slots];
+  for (let index = next.length; index <= row; index++) next.push({ id: null, locked: false });
+  next[row] = { ...(next[row] as HomeSlot), ...changes };
+  return next;
+};
 
 const readRetryDelayMs = 50;
 
@@ -107,6 +133,13 @@ export const useSettingsStore = create<SettingsStore>()(
               ? experiences.map((experience) => (experience.id === savedId ? saved : experience))
               : [...experiences, saved],
           });
+          // Saving puts the experience on the home page: in the breathing section, or in the
+          // timer row right above it. A timer that already has a row of its own stays there.
+          if (saved.kind === "breathing") {
+            set({ breathingSlot: { ...get().breathingSlot, id: savedId } });
+          } else if (!get().timerSlots.some((slot) => slot.id === savedId)) {
+            set({ timerSlots: withSlot(get().timerSlots, 0, { id: savedId }) });
+          }
           return savedId;
         },
         deleteExperience: (id) =>
@@ -139,6 +172,33 @@ export const useSettingsStore = create<SettingsStore>()(
             : set({ beepVolume: adjustVolume(get().beepVolume, deltaPercent) }),
         setCueOtherAudio: (cueType, mode) =>
           cueType === "voice" ? set({ voiceOtherAudio: mode }) : set({ beepOtherAudio: mode }),
+        showInBreathingSlot: (id) => set({ breathingSlot: { ...get().breathingSlot, id } }),
+        setBreathingSlotLocked: (locked) =>
+          set({ breathingSlot: { ...get().breathingSlot, locked } }),
+        showInTimerSlot: (row, id) => set({ timerSlots: withSlot(get().timerSlots, row, { id }) }),
+        setTimerSlotLocked: (row, locked) =>
+          set({ timerSlots: withSlot(get().timerSlots, row, { locked }) }),
+        setTimerRows: (timerRows) => set({ timerRows }),
+        adjustBreathingSectionHeight: (direction) =>
+          set({
+            breathingSectionHeight: adjustHeight(
+              get().breathingSectionHeight,
+              direction * breathingSectionHeightStep,
+              breathingSectionHeightLimits,
+              get().breathingSectionHeight,
+            ),
+          }),
+        adjustTimerRowHeight: (direction) =>
+          set({
+            timerRowHeight: adjustHeight(
+              get().timerRowHeight,
+              direction * timerRowHeightStep,
+              timerRowHeightLimits,
+              get().timerRowHeight,
+            ),
+          }),
+        setDividerStyle: (dividerStyle) => set({ dividerStyle }),
+        setDividerColor: (dividerColor) => set({ dividerColor }),
       }),
       {
         name: "settings-storage",
