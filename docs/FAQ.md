@@ -11,21 +11,21 @@ Questions are ordered by how often they've been asked, most asked first. The cou
 - [Where do I get the APK, and how do I install it?](#where-do-i-get-the-apk-and-how-do-i-install-it)
 - [Does the app use dark mode?](#does-the-app-use-dark-mode)
 - [How was it tested?](#how-was-it-tested)
-- [Does the session keep going when the screen is off?](#does-the-session-keep-going-when-the-screen-is-off)
-- [What is the default session?](#what-is-the-default-session)
 - [How does the sauna timer work?](#how-does-the-sauna-timer-work)
 - [Can I pause the two timers separately?](#can-i-pause-the-two-timers-separately)
+- [Can I leave a session running and go back to the home page?](#can-i-leave-a-session-running-and-go-back-to-the-home-page)
+- [How do I keep it updated with ObtainX?](#how-do-i-keep-it-updated-with-obtainx)
+- [How do I switch between my breathing exercises and timers on the home page?](#how-do-i-switch-between-my-breathing-exercises-and-timers-on-the-home-page)
+- [Does the session keep going when the screen is off?](#does-the-session-keep-going-when-the-screen-is-off)
+- [What is the default session?](#what-is-the-default-session)
 - [What is the best way to share it with other people?](#what-is-the-best-way-to-share-it-with-other-people)
 - [Should it be renamed?](#should-it-be-renamed)
+- [How do I create or edit an experience?](#how-do-i-create-or-edit-an-experience)
+- [What do the countdown numbers, spoken numbers and soft beeps do?](#what-do-the-countdown-numbers-spoken-numbers-and-soft-beeps-do)
+- [How do I change the volume of the voice and beeps, or keep my music playing?](#how-do-i-change-the-volume-of-the-voice-and-beeps-or-keep-my-music-playing)
 - [Why does the app ask to send notifications?](#why-does-the-app-ask-to-send-notifications)
 - [Does this work on iPhone?](#does-this-work-on-iphone)
 - [What does the license allow?](#what-does-the-license-allow)
-- [How do I create or edit an experience?](#how-do-i-create-or-edit-an-experience)
-- [Can I leave a session running and go back to the home page?](#can-i-leave-a-session-running-and-go-back-to-the-home-page)
-- [What do the countdown numbers, spoken numbers and soft beeps do?](#what-do-the-countdown-numbers-spoken-numbers-and-soft-beeps-do)
-- [How do I change the volume of the voice and beeps, or keep my music playing?](#how-do-i-change-the-volume-of-the-voice-and-beeps-or-keep-my-music-playing)
-- [How do I keep it updated with ObtainX?](#how-do-i-keep-it-updated-with-obtainx)
-- [How do I switch between my breathing exercises and timers on the home page?](#how-do-i-switch-between-my-breathing-exercises-and-timers-on-the-home-page)
 
 ## Where do I get the APK, and how do I install it?
 
@@ -65,29 +65,6 @@ emulator before publishing. The smoke test:
 The [Maestro flows](../.maestro/smoke) it runs are in the repository. Type checks, lint and unit
 tests run separately in the [validate workflow](../.github/workflows/validate.yml).
 
-## Does the session keep going when the screen is off?
-
-Yes, on Android. While a breathing session or any timer runs, the app keeps a small
-notification in the status bar. Behind it, a foreground service and a wake lock keep the timers,
-voice prompts, counted numbers, beeps, bells and vibrations going with the screen off. The service stops as soon as nothing
-is running, or when you swipe the app away.
-
-Steps are driven by the clock, not by animations. If the phone stalls for a moment, the session
-catches up to where it should be instead of drifting.
-
-Source: [`modules/background-session`](../modules/background-session),
-[`src/services/background-session.ts`](../src/services/background-session.ts) and
-[`step-loop.ts`](../src/screens/exercise-screen/step-loop.ts).
-
-## What is the default session?
-
-Five minutes of 4-7-8 breathing ("4-7-8 Deep Calm"), in the breathing section of the home page. If you used
-the original app's defaults (Square, 2 minutes), they move to the new defaults on first launch.
-Settings you changed yourself are kept: the session you had set up becomes that first breathing
-experience, and your sauna time becomes the "Sauna timer".
-
-Source: [`src/stores/settings-state.ts`](../src/stores/settings-state.ts).
-
 ## How does the sauna timer work?
 
 The sauna timer is a saved timer, in the row above the breathing section. It defaults to 15 minutes, and the − and +
@@ -111,89 +88,12 @@ and each timer has its own pause, resume and stop buttons. Pausing, resuming or 
 touches the others. Only one breathing session runs at a time: starting another one ends the one
 that is running.
 
-## What is the best way to share it with other people?
-
-There are two routes, and they work together.
-
-1. **Offer the changes to the original project.** If the original author accepts them, everyone
-   using Breathly gets the update without switching apps. The original
-   [README](https://github.com/mmazzarolo/breathly-app#contributing) welcomes pull requests, but
-   notes that the F-Droid version isn't maintained by the author.
-2. **Publish your own version.** In order of effort:
-   - **GitHub Releases plus [Obtainium](https://github.com/ImranR98/Obtainium):** free and works
-     today. Obtainium installs and updates apps straight from GitHub releases.
-   - **[IzzyOnDroid](https://apt.izzysoft.de/fdroid/):** a free F-Droid-style repository that picks
-     up GitHub releases.
-   - **[F-Droid](https://f-droid.org/docs/Submitting_to_F-Droid_Quick_Start_Guide/):** free, but
-     review takes weeks.
-   - **[Google Play](https://support.google.com/googleplay/android-developer/answer/14151465):** a
-     one-time $25 developer fee, and a new personal account must run a closed test with 12 testers
-     for 14 days before publishing.
-
-## Should it be renamed?
-
-Yes, if you publish your own version. The builds still use the original app ID
-(`com.mmazzarolo.breathly`), which means:
-
-- they can't be installed next to the original app, and
-- stores reject an app that reuses another developer's ID.
-
-A new name, a new app ID (for example `com.jabsch.<name>`) and a permanent signing key fix both.
-They also make it clear the build isn't the original author's release. Keep a credit to the
-original author in the app and the README.
-
-## Why does the app ask to send notifications?
-
-Android needs a visible notification to keep a foreground service running, and the service is
-what keeps the timers going with the screen off. The notification is silent and goes away when
-no timer is running.
-
-## Does this work on iPhone?
-
-The saved experiences, timers and dark mode work on iPhone, but the screen-off behavior is Android
-only. iOS pauses the session when the app goes to the background, as before.
-
-## What does the license allow?
-
-Breathly uses the [Mozilla Public License 2.0](../LICENSE). You can modify and redistribute it,
-including in app stores, as long as the modified source files stay under the MPL, the source is
-available (this public repository covers that), and the license and copyright notices are kept.
-
-## How do I create or edit an experience?
-
-Tap **Create Experience** at the bottom of the home page. Pick a breathing pattern (or **No
-Pattern: Custom Timer** for a plain timer), a voice, the counting options and a length, then tap
-**Save Experience**. It shows up on the home page right away: a breathing experience in the
-breathing section at the bottom, a timer in the row just above it. The button stays at the very
-bottom.
-
-Each one shows its pattern, voice and time, with − and + for the time, Start, and a pencil to
-edit it. Delete an experience from the bottom of its edit page.
-
 ## Can I leave a session running and go back to the home page?
 
 Yes. Swipe right on a running session, or tap the cards button between pause and close, and the
 home page comes back while the session keeps going. Swipe left, or tap its name on the home page, to
 return to it. Swiping right on the home page opens the menu from the left, with Settings, FAQ and
 About. The ☰ button in the top left opens it too.
-
-## What do the countdown numbers, spoken numbers and soft beeps do?
-
-They are three switches on the Create Experience page, under Counting:
-
-- **Countdown numbers** shows the seconds left in each step: Inhale 4, 3, 2, 1, Hold 7, 6, 5…
-- **Say the numbers** has a voice count along. The chosen voice says the step's name at its start
-  and the count follows on each second after it. The numbers come from the phone's text-to-speech
-  voice, because the recorded voices only say the step names.
-- **Soft beeps** plays a quiet beep every second.
-
-## How do I change the volume of the voice and beeps, or keep my music playing?
-
-Open Settings from the menu. The voice (with the counted numbers and bells) and the soft beeps
-each have a volume, and each has an **Other audio** choice for what music from other apps does
-while they play: keep playing, lower, or pause. Android decides how far "lower" goes; apps can't
-set it. By default the voice lowers music and the beeps leave it alone. The spoken numbers come
-from text-to-speech and don't change other audio.
 
 ## How do I keep it updated with ObtainX?
 
@@ -226,3 +126,103 @@ In **Settings**, under **Home screen**, you can choose how many timer rows show 
 or all of them in a list that scrolls up; 1 by default), the height of the breathing section and
 of each timer row, and the style and color of the lines. They start low, so the top half of the
 screen stays clear, as in the original app; a taller timer row puts its name above the time.
+
+## Does the session keep going when the screen is off?
+
+Yes, on Android. While a breathing session or any timer runs, the app keeps a small
+notification in the status bar. Behind it, a foreground service and a wake lock keep the timers,
+voice prompts, counted numbers, beeps, bells and vibrations going with the screen off. The service stops as soon as nothing
+is running, or when you swipe the app away.
+
+Steps are driven by the clock, not by animations. If the phone stalls for a moment, the session
+catches up to where it should be instead of drifting.
+
+Source: [`modules/background-session`](../modules/background-session),
+[`src/services/background-session.ts`](../src/services/background-session.ts) and
+[`step-loop.ts`](../src/screens/exercise-screen/step-loop.ts).
+
+## What is the default session?
+
+Five minutes of 4-7-8 breathing ("4-7-8 Deep Calm"), in the breathing section of the home page. If you used
+the original app's defaults (Square, 2 minutes), they move to the new defaults on first launch.
+Settings you changed yourself are kept: the session you had set up becomes that first breathing
+experience, and your sauna time becomes the "Sauna timer".
+
+Source: [`src/stores/settings-state.ts`](../src/stores/settings-state.ts).
+
+## What is the best way to share it with other people?
+
+There are two routes, and they work together.
+
+1. **Offer the changes to the original project.** If the original author accepts them, everyone
+   using Breathly gets the update without switching apps. The original
+   [README](https://github.com/mmazzarolo/breathly-app#contributing) welcomes pull requests, but
+   notes that the F-Droid version isn't maintained by the author.
+2. **Publish your own version.** In order of effort:
+   - **GitHub Releases plus [Obtainium](https://github.com/ImranR98/Obtainium):** free and works
+     today. Obtainium installs and updates apps straight from GitHub releases.
+   - **[IzzyOnDroid](https://apt.izzysoft.de/fdroid/):** a free F-Droid-style repository that picks
+     up GitHub releases.
+   - **[F-Droid](https://f-droid.org/docs/Submitting_to_F-Droid_Quick_Start_Guide/):** free, but
+     review takes weeks.
+   - **[Google Play](https://support.google.com/googleplay/android-developer/answer/14151465):** a
+     one-time $25 developer fee, and a new personal account must run a closed test with 12 testers
+     for 14 days before publishing.
+
+## Should it be renamed?
+
+Yes, if you publish your own version. The builds still use the original app ID
+(`com.mmazzarolo.breathly`), which means:
+
+- they can't be installed next to the original app, and
+- stores reject an app that reuses another developer's ID.
+
+A new name, a new app ID (for example `com.jabsch.<name>`) and a permanent signing key fix both.
+They also make it clear the build isn't the original author's release. Keep a credit to the
+original author in the app and the README.
+
+## How do I create or edit an experience?
+
+Tap **Create Experience** at the bottom of the home page. Pick a breathing pattern (or **No
+Pattern: Custom Timer** for a plain timer), a voice, the counting options and a length, then tap
+**Save Experience**. It shows up on the home page right away: a breathing experience in the
+breathing section at the bottom, a timer in the row just above it. The button stays at the very
+bottom.
+
+Each one shows its pattern, voice and time, with − and + for the time, Start, and a pencil to
+edit it. Delete an experience from the bottom of its edit page.
+
+## What do the countdown numbers, spoken numbers and soft beeps do?
+
+They are three switches on the Create Experience page, under Counting:
+
+- **Countdown numbers** shows the seconds left in each step: Inhale 4, 3, 2, 1, Hold 7, 6, 5…
+- **Say the numbers** has a voice count along. The chosen voice says the step's name at its start
+  and the count follows on each second after it. The numbers come from the phone's text-to-speech
+  voice, because the recorded voices only say the step names.
+- **Soft beeps** plays a quiet beep every second.
+
+## How do I change the volume of the voice and beeps, or keep my music playing?
+
+Open Settings from the menu. The voice (with the counted numbers and bells) and the soft beeps
+each have a volume, and each has an **Other audio** choice for what music from other apps does
+while they play: keep playing, lower, or pause. Android decides how far "lower" goes; apps can't
+set it. By default the voice lowers music and the beeps leave it alone. The spoken numbers come
+from text-to-speech and don't change other audio.
+
+## Why does the app ask to send notifications?
+
+Android needs a visible notification to keep a foreground service running, and the service is
+what keeps the timers going with the screen off. The notification is silent and goes away when
+no timer is running.
+
+## Does this work on iPhone?
+
+The saved experiences, timers and dark mode work on iPhone, but the screen-off behavior is Android
+only. iOS pauses the session when the app goes to the background, as before.
+
+## What does the license allow?
+
+Breathly uses the [Mozilla Public License 2.0](../LICENSE). You can modify and redistribute it,
+including in app stores, as long as the modified source files stay under the MPL, the source is
+available (this public repository covers that), and the license and copyright notices are kept.
