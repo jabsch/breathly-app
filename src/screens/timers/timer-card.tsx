@@ -60,12 +60,27 @@ interface LayoutContextValue {
 
 const LayoutContext = createContext<LayoutContextValue>({ layout: "card", scale: 1 });
 
-const defaultHeights: Record<Exclude<CardLayout, "card">, number> = { row: 80, section: 200 };
+// The heights the text sizes below are made for: a timer row on one line, and a breathing
+// section that leaves the top half of the home page to the title, as the original app did.
+const defaultHeights: Record<Exclude<CardLayout, "card">, number> = { row: 56, section: 140 };
 
-const getScale = (layout: CardLayout, height: number | undefined) =>
-  layout === "card" || height == null
-    ? 1
-    : Math.min(1.8, Math.max(0.9, height / defaultHeights[layout]));
+// From this height up a timer row has room for two lines: the name above the time and buttons,
+// which leaves the buttons the whole width to grow into.
+const twoLineRowHeight = 80;
+
+const clamp = (value: number, minimum: number, maximum: number) =>
+  Math.min(maximum, Math.max(minimum, value));
+
+const isTwoLineRow = (layout: CardLayout, height: number | undefined) =>
+  layout === "row" && (height ?? defaultHeights.row) >= twoLineRowHeight;
+
+const getScale = (layout: CardLayout, height: number | undefined) => {
+  if (layout === "card" || height == null) return 1;
+  if (layout === "section") return clamp(height / defaultHeights.section, 0.9, 1.4);
+  return isTwoLineRow(layout, height)
+    ? clamp(height / twoLineRowHeight, 1, 1.6)
+    : clamp(height / defaultHeights.row, 0.9, 1.25);
+};
 
 const formatMinutes = (durationMs: number) => `${Math.round(durationMs / ms("1 min"))} min`;
 
@@ -341,6 +356,8 @@ const Card: FC<PropsWithChildren<CardFrameProps>> = ({
   const theme = useThemeColors();
   const scale = getScale(layout, height);
   const isSection = layout === "section";
+  // A timer row on one line; a taller one is laid out like a card without its box.
+  const isRow = layout === "row" && !isTwoLineRow(layout, height);
   const actions = (onEdit || accessory) && (
     <View style={[styles.actions, isSection && styles.sectionActions]}>
       {accessory}
@@ -356,7 +373,8 @@ const Card: FC<PropsWithChildren<CardFrameProps>> = ({
   );
 
   return (
-    <LayoutContext.Provider value={{ layout, scale }}>
+    // A two-line row sizes its time and buttons the way a card does.
+    <LayoutContext.Provider value={{ layout: layout === "row" && !isRow ? "card" : layout, scale }}>
       <View
         style={[
           layout === "card" && [
@@ -364,12 +382,13 @@ const Card: FC<PropsWithChildren<CardFrameProps>> = ({
             styles.card,
             { backgroundColor: theme.background, borderColor: theme.border },
           ],
-          layout === "row" && [styles.row, { height }],
+          isRow && [styles.row, { height }],
+          layout === "row" && !isRow && [styles.twoLineRow, { height }],
           isSection && [styles.section, { height }],
         ]}
         testID={testID}
       >
-        <View style={[styles.header, isSection && styles.sectionHeader]}>
+        <View style={[styles.header, isSection && styles.sectionHeader, isRow && styles.rowHeader]}>
           <Pressable
             style={[styles.headerText, isSection && styles.sectionHeaderText]}
             onPress={onPress}
@@ -385,7 +404,7 @@ const Card: FC<PropsWithChildren<CardFrameProps>> = ({
                   isSection ? styles.sectionTitle : styles.title,
                   { color: theme.text },
                   isSection
-                    ? { fontSize: 28 * scale, lineHeight: 36 * scale }
+                    ? { fontSize: 26 * scale, lineHeight: 32 * scale }
                     : { fontSize: 16 * scale, lineHeight: 24 * scale },
                 ]}
                 numberOfLines={1}
@@ -410,10 +429,19 @@ const Card: FC<PropsWithChildren<CardFrameProps>> = ({
               </Text>
             )}
           </Pressable>
-          {!isSection && actions}
+          {!isSection && !isRow && actions}
         </View>
-        <View style={[styles.controls, isSection && styles.sectionControls]}>{children}</View>
+        <View
+          style={[
+            styles.controls,
+            isSection && styles.sectionControls,
+            isRow && styles.rowControls,
+          ]}
+        >
+          {children}
+        </View>
         {isSection && actions}
+        {isRow && actions}
       </View>
     </LayoutContext.Provider>
   );
@@ -422,12 +450,13 @@ const Card: FC<PropsWithChildren<CardFrameProps>> = ({
 const ValueText: FC<PropsWithChildren<{ testID: string }>> = ({ testID, children }) => {
   const theme = useThemeColors();
   const { layout, scale } = useContext(LayoutContext);
-  const size = (layout === "section" ? 22 : 18) * scale;
+  const size = (layout === "section" ? 20 : 18) * scale;
   return (
     <Text
       style={[
         styles.text,
         layout === "section" && styles.sectionText,
+        layout === "row" && styles.rowText,
         { color: theme.text, fontSize: size, lineHeight: size * 1.5 },
         // Wide enough for "60 min" or "00:00 paused" not to be cut short.
         layout === "section" && { minWidth: 96 * scale },
@@ -530,7 +559,30 @@ const styles = StyleSheet.create({
   disabled: {
     opacity: 0.4,
   },
+  // A timer row is one line: the name, then the time and its buttons, then lock and edit.
   row: {
+    alignItems: "center",
+    alignSelf: "stretch",
+    flexDirection: "row",
+    gap: 2,
+    paddingHorizontal: 16,
+  },
+  // The name gives way first, so the buttons always fit.
+  rowHeader: {
+    flex: 1,
+    minWidth: 0,
+  },
+  rowControls: {
+    gap: 2,
+  },
+  rowText: {
+    marginHorizontal: 2,
+    textAlign: "center",
+    flexBasis: "auto",
+    flexGrow: 0,
+    flexShrink: 0,
+  },
+  twoLineRow: {
     alignSelf: "stretch",
     gap: 2,
     justifyContent: "center",
@@ -539,14 +591,14 @@ const styles = StyleSheet.create({
   section: {
     alignItems: "center",
     alignSelf: "stretch",
-    gap: 6,
+    gap: 4,
     justifyContent: "center",
-    paddingBottom: 18,
+    paddingBottom: 16,
     paddingHorizontal: 28,
   },
   sectionActions: {
     position: "absolute",
-    right: 16,
+    right: 8,
     top: 4,
   },
   // A taller section has bigger controls; when they no longer fit on one line, the start
@@ -561,9 +613,10 @@ const styles = StyleSheet.create({
   sectionDetails: {
     textAlign: "center",
   },
+  // Room on both sides for the lock and edit buttons in the top right corner.
   sectionHeader: {
     alignSelf: "stretch",
-    paddingHorizontal: 56,
+    paddingHorizontal: 64,
   },
   sectionHeaderText: {
     alignItems: "center",
@@ -583,8 +636,11 @@ const styles = StyleSheet.create({
     fontFamily: fontFamilies.serifSemibold,
     textAlign: "center",
   },
+  // Kept inside the header, clear of the lock and edit buttons, so a long name shrinks or is
+  // cut short instead of running under them.
   sectionTitleRow: {
     justifyContent: "center",
+    maxWidth: "100%",
   },
   header: {
     alignItems: "center",

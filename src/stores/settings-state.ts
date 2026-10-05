@@ -69,9 +69,9 @@ export const minimumTimerDurationMs = ms("1 min");
 export const maximumTimerDurationMs = ms("180 min");
 export const volumeStepPercent = 10;
 export const maximumExperienceNameLength = 40;
-export const breathingSectionHeightLimits: [number, number] = [160, 360];
+export const breathingSectionHeightLimits: [number, number] = [120, 360];
 export const breathingSectionHeightStep = 20;
-export const timerRowHeightLimits: [number, number] = [72, 160];
+export const timerRowHeightLimits: [number, number] = [48, 160];
 export const timerRowHeightStep = 8;
 export const timerRowsOptions: TimerRowsSetting[] = [0, 1, 2, 3, 5, "all"];
 export const dividerStyles: DividerStyle[] = [
@@ -125,8 +125,9 @@ export const defaultSettingsState: PersistedSettingsState = {
   // Lowering the music once a second would pump it up and down all session.
   beepOtherAudio: "keep",
   timerRows: 1,
-  breathingSectionHeight: 200,
-  timerRowHeight: 80,
+  // Low enough that the top half of the home page stays the title's, as in the original app.
+  breathingSectionHeight: 140,
+  timerRowHeight: 56,
   dividerStyle: "ornament",
   dividerColor: "peach",
   breathingSlot: { id: null, locked: false },
@@ -306,7 +307,7 @@ export const normalizePersistedSettingsState = (value: unknown): PersistedSettin
 };
 
 // Bumped whenever a stored payload needs `migratePersistedSettingsState`.
-export const persistedSettingsVersion = 2;
+export const persistedSettingsVersion = 3;
 
 // Version 1 made five minutes of 4-7-8 the default session, in place of two minutes of Square.
 // A payload that still holds both of the old defaults never changed them, so it moves to the
@@ -354,11 +355,24 @@ const migrateToVersion2 = (persistedState: Record<string, unknown>) => {
   return { ...persistedState, experiences: [breathing, sauna] };
 };
 
+// Version 3 made the breathing section and the timer rows about a third lower by default. A
+// height still at the old default was never chosen, so it moves; one the user set stays.
+const migrateToVersion3 = (persistedState: Record<string, unknown>) => ({
+  ...persistedState,
+  ...(persistedState.breathingSectionHeight === 200 && {
+    breathingSectionHeight: defaultSettingsState.breathingSectionHeight,
+  }),
+  ...(persistedState.timerRowHeight === 80 && {
+    timerRowHeight: defaultSettingsState.timerRowHeight,
+  }),
+});
+
 export const migratePersistedSettingsState = (persistedState: unknown, version: number) => {
   if (!isRecord(persistedState)) return persistedState;
   let migrated = persistedState;
   if (version < 1) migrated = migrateToVersion1(migrated);
   if (version < 2) migrated = migrateToVersion2(migrated);
+  if (version < 3) migrated = migrateToVersion3(migrated);
   return migrated;
 };
 
