@@ -43,10 +43,13 @@ name: Open Settings, About and the breathing editor without a crash
     element:
       id: "experience.speak-numbers"
     direction: DOWN
+    # Centred, so the tap lands on the switch and not on the Save button over the list's foot.
+    centerElement: true
 - tapOn:
     id: "experience.speak-numbers"
 - scrollUntilVisible:
     element:
       id: "experience.numbers-volume"
     direction: DOWN
+    centerElement: true
 - back
