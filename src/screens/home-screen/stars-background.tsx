@@ -12,12 +12,16 @@ const BACKGROUND_ANIM_DURATION = ms("2 min");
 
 interface Props {
   fadeIn?: boolean;
+  // Fills the screen and fades out gradually from the top to the bottom, instead of ending
+  // in a short fade below the top part.
+  fullHeight?: boolean;
   onImageLoaded?: () => unknown;
   size?: number;
 }
 
 export const StarsBackground: FC<Props> = ({
   fadeIn,
+  fullHeight,
   onImageLoaded,
   size = widestDeviceDimension * 0.6,
 }) => {
@@ -83,12 +87,22 @@ export const StarsBackground: FC<Props> = ({
       <MaskedView
         style={styles.mask}
         maskElement={
-          <LinearGradient
-            colors={["black", "transparent"]}
-            style={{ flex: 1 }}
-            start={{ x: 0, y: 0.7 }}
-            end={{ x: 0, y: 0.9 }}
-          />
+          fullHeight ? (
+            <LinearGradient
+              colors={["black", "rgba(0, 0, 0, 0.55)", "rgba(0, 0, 0, 0.18)", "transparent"]}
+              locations={[0, 0.45, 0.8, 1]}
+              style={{ flex: 1 }}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+            />
+          ) : (
+            <LinearGradient
+              colors={["black", "transparent"]}
+              style={{ flex: 1 }}
+              start={{ x: 0, y: 0.7 }}
+              end={{ x: 0, y: 0.9 }}
+            />
+          )
         }
       >
         <Animated.View

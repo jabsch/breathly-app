@@ -381,6 +381,23 @@ const styles = StyleSheet.create({
   },
 });
 
+// iOS is not built from this fork; a stepper in the same steps stands in for a slider.
+const SliderItem: SettingsUIModule["SliderItem"] = ({
+  value,
+  onValueChange,
+  step = 5,
+  ...rest
+}) => (
+  <StepperItem
+    {...rest}
+    value={`${value}%`}
+    onDecrease={() => onValueChange(Math.max(0, value - step))}
+    onIncrease={() => onValueChange(Math.min(100, value + step))}
+    decreaseDisabled={value <= 0}
+    increaseDisabled={value >= 100}
+  />
+);
+
 export const SettingsUI: SettingsUIModule = {
   Section,
   Header,
@@ -388,5 +405,6 @@ export const SettingsUI: SettingsUIModule = {
   PickerItem,
   SwitchItem,
   StepperItem,
+  SliderItem,
   RadioButtonItem,
 };

@@ -46,7 +46,7 @@ interface SettingsStore extends PersistedSettingsState {
   setShouldFollowSystemDarkMode: (shouldFollowSystemDarkMode: boolean) => unknown;
   setTheme: (theme: Theme) => unknown;
   setVibrationEnabled: (vibrationEnabled: boolean) => unknown;
-  adjustCueVolume: (cueType: CueType, deltaPercent: number) => unknown;
+  adjustVoiceVolume: (deltaPercent: number) => unknown;
   setCueOtherAudio: (cueType: CueType, mode: OtherAudioMode) => unknown;
   // The home page: which experience each place shows, swipe locks, and how it looks.
   showInBreathingSlot: (id: string) => unknown;
@@ -58,6 +58,8 @@ interface SettingsStore extends PersistedSettingsState {
   adjustTimerRowHeight: (direction: 1 | -1) => unknown;
   setDividerStyle: (dividerStyle: DividerStyle) => unknown;
   setDividerColor: (dividerColor: DividerColor) => unknown;
+  setShowStars: (showStars: boolean) => unknown;
+  setShowBreathingAnimation: (showBreathingAnimation: boolean) => unknown;
 }
 
 const withSlot = (slots: HomeSlot[], row: number, changes: Partial<HomeSlot>) => {
@@ -166,10 +168,8 @@ export const useSettingsStore = create<SettingsStore>()(
           set({ shouldFollowSystemDarkMode }),
         setTheme: (theme) => set({ theme }),
         setVibrationEnabled: (vibrationEnabled) => set({ vibrationEnabled }),
-        adjustCueVolume: (cueType, deltaPercent) =>
-          cueType === "voice"
-            ? set({ voiceVolume: adjustVolume(get().voiceVolume, deltaPercent) })
-            : set({ beepVolume: adjustVolume(get().beepVolume, deltaPercent) }),
+        adjustVoiceVolume: (deltaPercent) =>
+          set({ voiceVolume: adjustVolume(get().voiceVolume, deltaPercent) }),
         setCueOtherAudio: (cueType, mode) =>
           cueType === "voice" ? set({ voiceOtherAudio: mode }) : set({ beepOtherAudio: mode }),
         showInBreathingSlot: (id) => set({ breathingSlot: { ...get().breathingSlot, id } }),
@@ -199,6 +199,8 @@ export const useSettingsStore = create<SettingsStore>()(
           }),
         setDividerStyle: (dividerStyle) => set({ dividerStyle }),
         setDividerColor: (dividerColor) => set({ dividerColor }),
+        setShowStars: (showStars) => set({ showStars }),
+        setShowBreathingAnimation: (showBreathingAnimation) => set({ showBreathingAnimation }),
       }),
       {
         name: "settings-storage",

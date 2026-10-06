@@ -60,7 +60,8 @@ export const HomeScreen: FC<NativeStackScreenProps<RootStackParamList, "Home">> 
   const theme = useThemeColors();
   const { isHomeScreenReady, markHomeScreenAsReady } = useHomeScreenStatusStore();
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
+  const showStars = useSettingsStore((state) => state.showStars);
   const experiences = useSettingsStore((state) => state.experiences);
   const breathingSlot = useSettingsStore((state) => state.breathingSlot);
   const timerSlotSettings = useSettingsStore((state) => state.timerSlots);
@@ -84,10 +85,11 @@ export const HomeScreen: FC<NativeStackScreenProps<RootStackParamList, "Home">> 
   useEffect(() => {
     // We run this only in light mode, because for dark mode we'll mark the flag only after
     // the stars background has been loaded.
-    if (colorScheme === "light" && !isHomeScreenReady) {
+    // With the stars turned off there is nothing to wait for either.
+    if ((colorScheme === "light" || !showStars) && !isHomeScreenReady) {
       markHomeScreenAsReady();
     }
-  }, [colorScheme, isHomeScreenReady, markHomeScreenAsReady]);
+  }, [colorScheme, isHomeScreenReady, markHomeScreenAsReady, showStars]);
 
   const handleStarsBackgroundImageLoaded = useCallback(() => {
     if (!isHomeScreenReady) {
@@ -254,8 +256,12 @@ export const HomeScreen: FC<NativeStackScreenProps<RootStackParamList, "Home">> 
           { backgroundColor: theme.background, transform: [{ translateX: homeTranslateX }] },
         ]}
       >
-        {colorScheme === "dark" && (
-          <StarsBackground onImageLoaded={handleStarsBackgroundImageLoaded} />
+        {colorScheme === "dark" && showStars && (
+          <StarsBackground
+            fullHeight
+            size={Math.max(height, width)}
+            onImageLoaded={handleStarsBackgroundImageLoaded}
+          />
         )}
         {colorScheme === "light" && <PlanetsBackground />}
 

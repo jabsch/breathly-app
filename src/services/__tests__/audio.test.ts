@@ -30,6 +30,8 @@ import {
   playGuidedBreathingSound,
   releaseGuidedBreathingAudio,
   setupGuidedBreathingAudio,
+  getSpeechVoiceSex,
+  pickSpeechVoice,
 } from "../audio";
 
 const mockCreateAudioPlayer = createAudioPlayer as jest.Mock;
@@ -161,5 +163,31 @@ describe("guided breathing audio", () => {
     await expect(playGuidedBreathingSound("breatheIn")).resolves.toBeUndefined();
     expect(mockPlayers).toHaveLength(1);
     expect(mockPlayers[0]!.play).not.toHaveBeenCalled();
+  });
+});
+
+describe("the voice that says the numbers", () => {
+  const voices = [
+    { identifier: "en-us-x-iom-network", language: "en-US", quality: "Enhanced" },
+    { identifier: "en-us-x-iom-local", language: "en-US", quality: "Enhanced" },
+    { identifier: "en-us-x-sfg-local", language: "en-US", quality: "Enhanced" },
+    { identifier: "de-de-x-deb#female_1-local", language: "de-DE", quality: "Default" },
+    { identifier: "de-de-x-deg#male_1-local", language: "de-DE", quality: "Default" },
+  ] as Parameters<typeof pickSpeechVoice>[0];
+
+  it("tells the sex of a voice from its name", () => {
+    expect(getSpeechVoiceSex("en-us-x-sfg#female_2-local")).toBe("female");
+    expect(getSpeechVoiceSex("en-us-x-sfg#male_1-local")).toBe("male");
+    expect(getSpeechVoiceSex("en-us-x-iol-local")).toBe("male");
+    expect(getSpeechVoiceSex("en-us-x-tpf-local")).toBe("female");
+    expect(getSpeechVoiceSex("com.apple.voice.compact.en-US.Samantha")).toBeUndefined();
+  });
+
+  it("picks a voice of the same sex as the recorded one, offline first, in the phone's language", () => {
+    expect(pickSpeechVoice(voices, "male", "en-US")).toBe("en-us-x-iom-local");
+    expect(pickSpeechVoice(voices, "female", "en-US")).toBe("en-us-x-sfg-local");
+    expect(pickSpeechVoice(voices, "male", "de-DE")).toBe("de-de-x-deg#male_1-local");
+    expect(pickSpeechVoice(voices, "female", "fr-FR")).toBe("en-us-x-sfg-local");
+    expect(pickSpeechVoice([], "female", "en-US")).toBeUndefined();
   });
 });

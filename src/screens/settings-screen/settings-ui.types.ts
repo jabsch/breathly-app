@@ -42,6 +42,13 @@ export interface StepperItemProps extends CommonItemProps {
   fractionDigits?: number;
 }
 
+// A percentage, dragged in steps of `step`.
+export interface SliderItemProps extends CommonItemProps {
+  value: number;
+  onValueChange: (value: number) => unknown;
+  step?: number;
+}
+
 export interface HeaderProps {
   title: string;
   onBack: () => void;
@@ -63,5 +70,6 @@ export interface SettingsUIModule {
   PickerItem: React.FC<PickerItemProps>;
   SwitchItem: React.FC<SwitchItemProps>;
   StepperItem: React.FC<StepperItemProps>;
+  SliderItem: React.FC<SliderItemProps>;
   RadioButtonItem: React.FC<RadioButtonItemProps>;
 }

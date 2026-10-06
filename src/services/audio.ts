@@ -19,12 +19,13 @@ const interruptionModes = {
   pause: "doNotMix",
 } as const;
 
-// The settings are read at play time, so a change applies from the next cue on.
+// The settings are read at play time, so a change applies from the next cue on. The beeps have
+// no app-wide volume: each experience sets its own, passed in with the beep.
 const cueLevels = (cueType: CueType) => {
   const state = useSettingsStore.getState();
   return cueType === "voice"
     ? { volume: state.voiceVolume / 100, otherAudio: state.voiceOtherAudio }
-    : { volume: state.beepVolume / 100, otherAudio: state.beepOtherAudio };
+    : { volume: 1, otherAudio: state.beepOtherAudio };
 };
 
 // expo-audio asks Android for audio focus when a cue starts and gives it back when nothing
@@ -49,12 +50,13 @@ const playFromStart = async (
   player: AudioPlayer,
   cueType: CueType,
   stillCurrent: () => boolean = () => true,
+  volumeOverride?: number,
 ) => {
   const { volume, otherAudio } = cueLevels(cueType);
   await configureAudioMode(otherAudio);
   await player.seekTo(0);
   if (!stillCurrent()) return;
-  player.volume = volume;
+  player.volume = volumeOverride ?? volume;
   player.play();
 };
 
@@ -227,27 +229,98 @@ export const playTimerAlarmSound = async () => {
 // player per beep would allocate sixty native players a minute.
 let softBeepSound: AudioPlayer | undefined;
 
-export const playSoftBeep = async () => {
+// `volumePercent` is the experience's beep volume.
+export const playSoftBeep = async (volumePercent: number) => {
   try {
     softBeepSound ??= createAudioPlayer(await prepareAudioSource(sounds.softBeep));
-    await playFromStart(softBeepSound, "beep");
+    await playFromStart(softBeepSound, "beep", undefined, volumePercent / 100);
   } catch {
     // The beeps are optional; the session goes on without them.
   }
 };
 
-// The counted numbers come from the phone's text-to-speech voice: the recorded voices only say
-// the step names. They follow the voice volume. A number lasts well under the second before the
-// next one, so they never queue up behind each other.
-export const speakCountdownNumber = (value: number) => {
+// The counted numbers come from the phone's text-to-speech engine: the recorded voices only say
+// the step names, and there are no recordings of them saying numbers. So the engine's voice that
+// sounds most like the chosen one says them: a woman's voice for Laura, a man's for Paul.
+// Android names its voices like "en-us-x-iol-local" or "en-us-x-sfg#male_1-local"; the Google
+// voices below are the US English ones whose sex the name does not say.
+const knownFemaleVoices = ["sfg", "iob", "iog", "tpc", "tpf"];
+const knownMaleVoices = ["iol", "iom", "tpd"];
+
+type VoiceSex = "female" | "male";
+const voiceSexes: Partial<Record<GuidedBreathingMode, VoiceSex>> = {
+  laura: "female",
+  paul: "male",
+};
+
+export const getSpeechVoiceSex = (identifier: string): VoiceSex | undefined => {
+  const name = identifier.toLowerCase();
+  if (/(^|[^e])male/.test(name)) return "male";
+  if (name.includes("female")) return "female";
+  const code = /-x-([a-z]{3})/.exec(name)?.[1];
+  if (code && knownFemaleVoices.includes(code)) return "female";
+  if (code && knownMaleVoices.includes(code)) return "male";
+  return undefined;
+};
+
+// The voice to speak with, by the sex of the recorded voice: one in the phone's language when
+// it has one, an English one otherwise. Undefined leaves the phone's default voice.
+export const pickSpeechVoice = (
+  voices: Pick<Speech.Voice, "identifier" | "language" | "quality">[],
+  sex: VoiceSex,
+  language: string,
+) => {
+  const matching = voices.filter((voice) => getSpeechVoiceSex(voice.identifier) === sex);
+  const byLanguage = (prefix: string) =>
+    matching.filter((voice) => voice.language.toLowerCase().startsWith(prefix));
+  const candidates = [
+    ...byLanguage(language.toLowerCase()),
+    ...byLanguage(language.toLowerCase().slice(0, 2)),
+    ...byLanguage("en"),
+  ];
+  // Voices that need the network stop speaking with the phone offline.
+  return (candidates.find((voice) => !voice.identifier.includes("network")) ?? candidates[0])
+    ?.identifier;
+};
+
+let speechVoices: Speech.Voice[] | undefined;
+const speechVoiceFor = (voice: GuidedBreathingMode) => {
+  const sex = voiceSexes[voice];
+  if (!sex || !speechVoices) return undefined;
+  const language = Intl.DateTimeFormat().resolvedOptions().locale ?? "en-US";
+  return pickSpeechVoice(speechVoices, sex, language);
+};
+// No voice of that sex: a lower or higher pitch of the default voice still tells them apart.
+const fallbackPitches: Partial<Record<GuidedBreathingMode, number>> = { laura: 1.1, paul: 0.85 };
+
+// A number lasts well under the second before the next one, so they never queue up behind each
+// other. `volumePercent` is the experience's volume for the numbers.
+export const speakCountdownNumber = (
+  value: number,
+  voice: GuidedBreathingMode,
+  volumePercent: number,
+) => {
   try {
-    Speech.speak(String(value), { volume: cueLevels("voice").volume, rate: 1.1 });
+    const identifier = speechVoiceFor(voice);
+    Speech.speak(String(value), {
+      volume: volumePercent / 100,
+      rate: 1.1,
+      ...(identifier ? { voice: identifier } : { pitch: fallbackPitches[voice] }),
+    });
   } catch {
     // The numbers on screen still count.
   }
 };
 
 // The text-to-speech engine starts on first use, and the first number would wait for it.
+// The voice list is read here too, once, so the first number already has its voice.
 export const warmUpCountdownSpeech = () => {
   void Speech.isSpeakingAsync().catch(() => undefined);
+  if (!speechVoices) {
+    void Speech.getAvailableVoicesAsync()
+      .then((voices) => {
+        speechVoices = voices;
+      })
+      .catch(() => undefined);
+  }
 };

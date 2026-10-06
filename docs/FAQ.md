@@ -9,20 +9,21 @@ Questions are ordered by how often they've been asked, most asked first. The cou
 [`faq-asks.json`](./faq-asks.json), and `bun run faq:sort` reorders this page from them.
 
 - [Where do I get the APK, and how do I install it?](#where-do-i-get-the-apk-and-how-do-i-install-it)
+- [How do I switch between my breathing exercises and timers on the home page?](#how-do-i-switch-between-my-breathing-exercises-and-timers-on-the-home-page)
 - [Does the app use dark mode?](#does-the-app-use-dark-mode)
 - [How was it tested?](#how-was-it-tested)
 - [How does the sauna timer work?](#how-does-the-sauna-timer-work)
 - [Can I pause the two timers separately?](#can-i-pause-the-two-timers-separately)
 - [Can I leave a session running and go back to the home page?](#can-i-leave-a-session-running-and-go-back-to-the-home-page)
 - [How do I keep it updated with ObtainX?](#how-do-i-keep-it-updated-with-obtainx)
-- [How do I switch between my breathing exercises and timers on the home page?](#how-do-i-switch-between-my-breathing-exercises-and-timers-on-the-home-page)
+- [What do the countdown numbers, spoken numbers and soft beeps do?](#what-do-the-countdown-numbers-spoken-numbers-and-soft-beeps-do)
+- [How do I change the volume of the voice and beeps, or keep my music playing?](#how-do-i-change-the-volume-of-the-voice-and-beeps-or-keep-my-music-playing)
 - [Does the session keep going when the screen is off?](#does-the-session-keep-going-when-the-screen-is-off)
 - [What is the default session?](#what-is-the-default-session)
 - [What is the best way to share it with other people?](#what-is-the-best-way-to-share-it-with-other-people)
 - [Should it be renamed?](#should-it-be-renamed)
 - [How do I create or edit an experience?](#how-do-i-create-or-edit-an-experience)
-- [What do the countdown numbers, spoken numbers and soft beeps do?](#what-do-the-countdown-numbers-spoken-numbers-and-soft-beeps-do)
-- [How do I change the volume of the voice and beeps, or keep my music playing?](#how-do-i-change-the-volume-of-the-voice-and-beeps-or-keep-my-music-playing)
+- [Can I turn off the stars or the breathing circle?](#can-i-turn-off-the-stars-or-the-breathing-circle)
 - [Why does the app ask to send notifications?](#why-does-the-app-ask-to-send-notifications)
 - [Does this work on iPhone?](#does-this-work-on-iphone)
 - [What does the license allow?](#what-does-the-license-allow)
@@ -40,6 +41,20 @@ Every change merged to `master` builds, tests and publishes a new release, named
 2. Open the downloaded file and allow your browser or file manager to install unknown apps when
    asked.
 3. Allow notifications when the app asks.
+
+## How do I switch between my breathing exercises and timers on the home page?
+
+The home page shows one breathing exercise, in the section at the bottom. Swipe left or right on
+it to go through the others you saved; the dots under it show where you are. Timers sit in rows
+above it, and only once you have saved one. Swipe a row to go through your timers.
+
+Tap the lock on a section or row to keep it on what it shows. Swiping on it then turns the page
+instead, like swiping anywhere else. The lines between them show where each one ends.
+
+In **Settings**, under **Home screen**, you can choose how many timer rows show (Off, 1, 2, 3, 5,
+or all of them in a list that scrolls up; 1 by default), the height of the breathing section and
+of each timer row, and the style and color of the lines. They start low, so the top half of the
+screen stays clear, as in the original app; a taller timer row puts its name above the time.
 
 ## Does the app use dark mode?
 
@@ -113,19 +128,30 @@ built from `master` and skips the prereleases unless you turn on prereleases for
 build is signed with the same test key and has a higher version than the last, so each one
 installs over the one before.
 
-## How do I switch between my breathing exercises and timers on the home page?
+## What do the countdown numbers, spoken numbers and soft beeps do?
 
-The home page shows one breathing exercise, in the section at the bottom. Swipe left or right on
-it to go through the others you saved; the dots under it show where you are. Timers sit in rows
-above it, and only once you have saved one. Swipe a row to go through your timers.
+They are three switches on the Create Experience page, under Counting:
 
-Tap the lock on a section or row to keep it on what it shows. Swiping on it then turns the page
-instead, like swiping anywhere else. The lines between them show where each one ends.
+- **Countdown numbers** shows the seconds left in each step, large in the middle of the breathing
+  circle with a slow pulse on each new number: Inhale 4, 3, 2, 1, Hold 7, 6, 5…
+- **Say the numbers** has a voice count along. The chosen voice says the step's name at its start
+  and the count follows on each second after it. The recorded voices only say the step names, so
+  the numbers come from the phone's text-to-speech: the app picks a voice of the same kind as the
+  one chosen (a woman's voice for Laura, a man's for Paul) when the phone has one, and otherwise
+  pitches the default voice up or down to suit. It sounds close to the chosen voice, not the same.
+- **Soft beeps** plays a quiet beep every second.
 
-In **Settings**, under **Home screen**, you can choose how many timer rows show (Off, 1, 2, 3, 5,
-or all of them in a list that scrolls up; 1 by default), the height of the breathing section and
-of each timer row, and the style and color of the lines. They start low, so the top half of the
-screen stays clear, as in the original app; a taller timer row puts its name above the time.
+Turning on **Say the numbers** or **Soft beeps** shows a volume slider under it. Each experience
+keeps its own volumes.
+
+## How do I change the volume of the voice and beeps, or keep my music playing?
+
+The recorded voice and the bells have one volume in Settings, under Voice and bells. The counted
+numbers and the soft beeps each have a volume slider on the experience's own page, so every
+experience can be louder or quieter. Settings also has an **Other audio** choice for the voice and
+for the beeps, for what music from other apps does while they play: keep playing, lower, or pause.
+Android decides how far "lower" goes; apps can't set it. By default the voice lowers music and the
+beeps leave it alone. The spoken numbers come from text-to-speech and don't change other audio.
 
 ## Does the session keep going when the screen is off?
 
@@ -192,23 +218,12 @@ bottom.
 Each one shows its pattern, voice and time, with − and + for the time, Start, and a pencil to
 edit it. Delete an experience from the bottom of its edit page.
 
-## What do the countdown numbers, spoken numbers and soft beeps do?
+## Can I turn off the stars or the breathing circle?
 
-They are three switches on the Create Experience page, under Counting:
-
-- **Countdown numbers** shows the seconds left in each step: Inhale 4, 3, 2, 1, Hold 7, 6, 5…
-- **Say the numbers** has a voice count along. The chosen voice says the step's name at its start
-  and the count follows on each second after it. The numbers come from the phone's text-to-speech
-  voice, because the recorded voices only say the step names.
-- **Soft beeps** plays a quiet beep every second.
-
-## How do I change the volume of the voice and beeps, or keep my music playing?
-
-Open Settings from the menu. The voice (with the counted numbers and bells) and the soft beeps
-each have a volume, and each has an **Other audio** choice for what music from other apps does
-while they play: keep playing, lower, or pause. Android decides how far "lower" goes; apps can't
-set it. By default the voice lowers music and the beeps leave it alone. The spoken numbers come
-from text-to-speech and don't change other audio.
+Yes. Settings has an Animations section with a switch for each. The stars drift behind the home
+page and the session in the dark theme, fading out toward the bottom of the screen. With the
+breathing circle off, the session shows only the step name and, if turned on, the countdown
+numbers.
 
 ## Why does the app ask to send notifications?
 
