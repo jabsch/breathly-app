@@ -25,6 +25,10 @@ def walk(node, depth=0):
 walk(json.load(sys.stdin))
 ' || true
   echo "::endgroup::"
+  echo "::group::Crash log"
+  adb logcat -d -b crash || true
+  adb logcat -d -s AndroidRuntime:E ReactNativeJS:E | tail -80 || true
+  echo "::endgroup::"
 }
 trap print_screen ERR
 
@@ -32,6 +36,7 @@ adb install -r "$apk"
 adb logcat -c
 
 maestro test .maestro/flows/launch-and-exercise.yaml
+maestro test .maestro/smoke/open-settings-and-editor.yaml
 maestro test .maestro/smoke/start-breathing-and-sauna.yaml
 
 # The session counts down from five minutes. With the screen off for 40 seconds a timer that
