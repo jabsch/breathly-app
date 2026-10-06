@@ -8,6 +8,7 @@ import {
   Row,
   SegmentedButton,
   SingleChoiceSegmentedButtonRow,
+  Slider,
   Switch,
   Text,
   TextButton,
@@ -38,6 +39,7 @@ import {
   StepperItemProps,
   SwitchItemProps,
   SectionProps,
+  SliderItemProps,
   type SettingsUIModule,
 } from "./settings-ui.types";
 
@@ -113,7 +115,13 @@ const Header: FC<HeaderProps> = ({ title, onBack }) => {
       >
         <Ionicons name="arrow-back" size={22} color={colors.onSurface} />
       </Pressable>
-      <NativeText style={{ marginLeft: 16, fontSize: 24, color: colors.onSurface }}>
+      {/* The rest of the row, not the width Android measured for the word: a short title like
+          "About" was measured a little narrow and lost its last letter. */}
+      <NativeText
+        style={{ flex: 1, marginLeft: 16, fontSize: 24, lineHeight: 32, color: colors.onSurface }}
+        numberOfLines={1}
+        testID="settings.header.title"
+      >
         {title}
       </NativeText>
     </View>
@@ -427,6 +435,53 @@ const StepperItem: FC<StepperItemProps & GroupPositionProp> = ({
   );
 };
 
+const SliderItem: FC<SliderItemProps & GroupPositionProp> = ({
+  label,
+  secondaryLabel,
+  value,
+  onValueChange,
+  step = 5,
+  testID,
+  groupPosition = "single",
+}) => {
+  const cardColor = useCardColor();
+  const colorScheme = useSettingsColorScheme();
+  const colors = useMaterialColors({ colorScheme });
+  return (
+    <ListItem
+      colors={{ containerColor: cardColor }}
+      modifiers={[
+        fillMaxWidth(),
+        clip(Shapes.RoundedCorner(groupCornerRadii(groupPosition))),
+        ...(testID ? [testTagModifier(testID)] : []),
+      ]}
+    >
+      {label != null && (
+        <ListItem.HeadlineContent>
+          <Text>{label}</Text>
+        </ListItem.HeadlineContent>
+      )}
+      <ListItem.SupportingContent>
+        <Column>
+          {secondaryLabel != null && <Text>{secondaryLabel}</Text>}
+          <Slider
+            value={value}
+            min={0}
+            max={100}
+            steps={Math.round(100 / step) - 1}
+            colors={{ thumbColor: colors.primary, activeTrackColor: colors.primary }}
+            onValueChange={(next) => onValueChange(Math.round(next / step) * step)}
+            modifiers={testID ? [testTagModifier(`${testID}.slider`)] : []}
+          />
+        </Column>
+      </ListItem.SupportingContent>
+      <ListItem.TrailingContent>
+        <Text modifiers={testID ? [testTagModifier(`${testID}.value`)] : []}>{`${value}%`}</Text>
+      </ListItem.TrailingContent>
+    </ListItem>
+  );
+};
+
 export const SettingsUI: SettingsUIModule = {
   Section,
   Header,
@@ -434,5 +489,6 @@ export const SettingsUI: SettingsUIModule = {
   PickerItem,
   SwitchItem,
   StepperItem,
+  SliderItem,
   RadioButtonItem,
 };

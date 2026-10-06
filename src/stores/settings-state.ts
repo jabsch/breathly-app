@@ -33,9 +33,9 @@ export interface PersistedSettingsState {
   shouldFollowSystemDarkMode: boolean;
   theme: Theme;
   vibrationEnabled: boolean;
-  // Percentages, in steps of `volumeStepPercent`.
+  // A percentage, in steps of `volumeStepPercent`, for the recorded voice cues. The counted
+  // numbers and the beeps have volumes of their own in each experience.
   voiceVolume: number;
-  beepVolume: number;
   voiceOtherAudio: OtherAudioMode;
   beepOtherAudio: OtherAudioMode;
   timerRows: TimerRowsSetting;
@@ -44,6 +44,8 @@ export interface PersistedSettingsState {
   timerRowHeight: number;
   dividerStyle: DividerStyle;
   dividerColor: DividerColor;
+  showStars: boolean;
+  showBreathingAnimation: boolean;
   breathingSlot: HomeSlot;
   // The timer rows from the breathing section up: the first one sits right above it.
   timerSlots: HomeSlot[];
@@ -94,6 +96,9 @@ export const defaultExperienceSettings: ExperienceSettings = {
   countdownNumbers: false,
   speakNumbers: false,
   softBeeps: false,
+  numbersVolume: 100,
+  // Soft: a tick every second should sit under the voice, not over it.
+  beepVolume: 40,
   timerDurationMs: ms("15 min"),
 };
 
@@ -119,8 +124,6 @@ export const defaultSettingsState: PersistedSettingsState = {
   theme: "dark",
   vibrationEnabled: true,
   voiceVolume: 100,
-  // Soft: a tick every second should sit under the voice, not over it.
-  beepVolume: 40,
   voiceOtherAudio: "lower",
   // Lowering the music once a second would pump it up and down all session.
   beepOtherAudio: "keep",
@@ -130,6 +133,8 @@ export const defaultSettingsState: PersistedSettingsState = {
   timerRowHeight: 56,
   dividerStyle: "ornament",
   dividerColor: "peach",
+  showStars: true,
+  showBreathingAnimation: true,
   breathingSlot: { id: null, locked: false },
   timerSlots: [],
 };
@@ -240,6 +245,8 @@ export const normalizeExperienceSettings = (value: unknown): ExperienceSettings 
     countdownNumbers: booleanOr(candidate.countdownNumbers, defaults.countdownNumbers),
     speakNumbers: booleanOr(candidate.speakNumbers, defaults.speakNumbers),
     softBeeps: booleanOr(candidate.softBeeps, defaults.softBeeps),
+    numbersVolume: clampFiniteNumber(candidate.numbersVolume, 0, 100, defaults.numbersVolume),
+    beepVolume: clampFiniteNumber(candidate.beepVolume, 0, 100, defaults.beepVolume),
     timerDurationMs: clampFiniteNumber(
       candidate.timerDurationMs,
       minimumTimerDurationMs,
@@ -281,7 +288,6 @@ export const normalizePersistedSettingsState = (value: unknown): PersistedSettin
     theme: oneOf(candidate.theme, ["dark", "light"] as const, defaults.theme),
     vibrationEnabled: booleanOr(candidate.vibrationEnabled, defaults.vibrationEnabled),
     voiceVolume: clampFiniteNumber(candidate.voiceVolume, 0, 100, defaults.voiceVolume),
-    beepVolume: clampFiniteNumber(candidate.beepVolume, 0, 100, defaults.beepVolume),
     voiceOtherAudio: oneOf(candidate.voiceOtherAudio, otherAudioModes, defaults.voiceOtherAudio),
     beepOtherAudio: oneOf(candidate.beepOtherAudio, otherAudioModes, defaults.beepOtherAudio),
     timerRows: oneOf(candidate.timerRows, timerRowsOptions, defaults.timerRows),
@@ -299,6 +305,11 @@ export const normalizePersistedSettingsState = (value: unknown): PersistedSettin
     ),
     dividerStyle: oneOf(candidate.dividerStyle, dividerStyles, defaults.dividerStyle),
     dividerColor: oneOf(candidate.dividerColor, dividerColors, defaults.dividerColor),
+    showStars: booleanOr(candidate.showStars, defaults.showStars),
+    showBreathingAnimation: booleanOr(
+      candidate.showBreathingAnimation,
+      defaults.showBreathingAnimation,
+    ),
     breathingSlot: normalizeHomeSlot(candidate.breathingSlot),
     timerSlots: Array.isArray(candidate.timerSlots)
       ? candidate.timerSlots.slice(0, maximumTimerSlots).map(normalizeHomeSlot)
@@ -307,7 +318,7 @@ export const normalizePersistedSettingsState = (value: unknown): PersistedSettin
 };
 
 // Bumped whenever a stored payload needs `migratePersistedSettingsState`.
-export const persistedSettingsVersion = 3;
+export const persistedSettingsVersion = 4;
 
 // Version 1 made five minutes of 4-7-8 the default session, in place of two minutes of Square.
 // A payload that still holds both of the old defaults never changed them, so it moves to the
@@ -367,12 +378,33 @@ const migrateToVersion3 = (persistedState: Record<string, unknown>) => ({
   }),
 });
 
+// Version 4 moved the beep volume from the settings into each experience, and gave the counted
+// numbers a volume of their own. Every experience starts from the beep volume set before; the
+// numbers followed the voice volume, so they start from that.
+const migrateToVersion4 = (persistedState: Record<string, unknown>) => {
+  if (!Array.isArray(persistedState.experiences)) return persistedState;
+  const { beepVolume, voiceVolume } = persistedState;
+  return {
+    ...persistedState,
+    experiences: persistedState.experiences.map((experience: unknown) =>
+      isRecord(experience)
+        ? {
+            ...experience,
+            ...(typeof beepVolume === "number" && { beepVolume }),
+            ...(typeof voiceVolume === "number" && { numbersVolume: voiceVolume }),
+          }
+        : experience,
+    ),
+  };
+};
+
 export const migratePersistedSettingsState = (persistedState: unknown, version: number) => {
   if (!isRecord(persistedState)) return persistedState;
   let migrated = persistedState;
   if (version < 1) migrated = migrateToVersion1(migrated);
   if (version < 2) migrated = migrateToVersion2(migrated);
   if (version < 3) migrated = migrateToVersion3(migrated);
+  if (version < 4) migrated = migrateToVersion4(migrated);
   return migrated;
 };
 

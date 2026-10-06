@@ -1,6 +1,6 @@
 {
   "rule": "Each message from a person that asks or requests something covered by a question adds 1 to that question. Sources: the project chat and its threads, and issues and discussions on jabsch/breathly-app. Only messages after countedThrough are new.",
-  "countedThrough": "2026-10-05T14:40:40Z",
+  "countedThrough": "2026-10-06T12:00:00Z",
   "questions": {
     "where-do-i-get-the-apk-and-how-do-i-install-it": 3,
     "does-the-app-use-dark-mode": 2,
@@ -16,9 +16,10 @@
     "what-does-the-license-allow": 0,
     "how-do-i-create-or-edit-an-experience": 1,
     "can-i-leave-a-session-running-and-go-back-to-the-home-page": 2,
-    "what-do-the-countdown-numbers-spoken-numbers-and-soft-beeps-do": 1,
-    "how-do-i-change-the-volume-of-the-voice-and-beeps-or-keep-my-music-playing": 1,
+    "what-do-the-countdown-numbers-spoken-numbers-and-soft-beeps-do": 2,
+    "how-do-i-change-the-volume-of-the-voice-and-beeps-or-keep-my-music-playing": 2,
     "how-do-i-keep-it-updated-with-obtainx": 2,
-    "how-do-i-switch-between-my-breathing-exercises-and-timers-on-the-home-page": 2
+    "how-do-i-switch-between-my-breathing-exercises-and-timers-on-the-home-page": 3,
+    "can-i-turn-off-the-stars-or-the-breathing-circle": 1
   }
 }

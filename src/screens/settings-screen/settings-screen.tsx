@@ -48,10 +48,13 @@ export const SettingsRootScreen: FC<
   const vibrationEnabled = useSettingsStore((state) => state.vibrationEnabled);
   const setVibrationEnabled = useSettingsStore((state) => state.setVibrationEnabled);
   const voiceVolume = useSettingsStore((state) => state.voiceVolume);
-  const beepVolume = useSettingsStore((state) => state.beepVolume);
   const voiceOtherAudio = useSettingsStore((state) => state.voiceOtherAudio);
   const beepOtherAudio = useSettingsStore((state) => state.beepOtherAudio);
-  const adjustCueVolume = useSettingsStore((state) => state.adjustCueVolume);
+  const adjustVoiceVolume = useSettingsStore((state) => state.adjustVoiceVolume);
+  const showStars = useSettingsStore((state) => state.showStars);
+  const setShowStars = useSettingsStore((state) => state.setShowStars);
+  const showBreathingAnimation = useSettingsStore((state) => state.showBreathingAnimation);
+  const setShowBreathingAnimation = useSettingsStore((state) => state.setShowBreathingAnimation);
   const setCueOtherAudio = useSettingsStore((state) => state.setCueOtherAudio);
   const timerRows = useSettingsStore((state) => state.timerRows);
   const setTimerRows = useSettingsStore((state) => state.setTimerRows);
@@ -155,12 +158,12 @@ export const SettingsRootScreen: FC<
         <SettingsUI.Section label="Voice and bells">
           <SettingsUI.StepperItem
             label="Volume"
-            secondaryLabel="Voice cues, counted numbers and bells, in percent"
+            secondaryLabel="The recorded voice and bells, in percent. Each experience sets its own for counted numbers and beeps"
             iconName="volume-medium"
             iconBackgroundColor="#fdba74"
             value={voiceVolume}
-            onIncrease={() => adjustCueVolume("voice", volumeStepPercent)}
-            onDecrease={() => adjustCueVolume("voice", -volumeStepPercent)}
+            onIncrease={() => adjustVoiceVolume(volumeStepPercent)}
+            onDecrease={() => adjustVoiceVolume(-volumeStepPercent)}
             decreaseDisabled={voiceVolume <= 0}
             increaseDisabled={voiceVolume >= 100}
             testID="settings.voice-volume"
@@ -177,18 +180,6 @@ export const SettingsRootScreen: FC<
           />
         </SettingsUI.Section>
         <SettingsUI.Section label="Soft beeps">
-          <SettingsUI.StepperItem
-            label="Volume"
-            secondaryLabel="The beep every second, in percent"
-            iconName="radio-button-on"
-            iconBackgroundColor="#86efac"
-            value={beepVolume}
-            onIncrease={() => adjustCueVolume("beep", volumeStepPercent)}
-            onDecrease={() => adjustCueVolume("beep", -volumeStepPercent)}
-            decreaseDisabled={beepVolume <= 0}
-            increaseDisabled={beepVolume >= 100}
-            testID="settings.beep-volume"
-          />
           <SettingsUI.PickerItem
             label="Other audio"
             secondaryLabel="What music does while a beep plays"
@@ -198,6 +189,26 @@ export const SettingsRootScreen: FC<
             options={otherAudioOptions}
             onValueChange={(value) => setCueOtherAudio("beep", value as OtherAudioMode)}
             testID="settings.beep-other-audio"
+          />
+        </SettingsUI.Section>
+        <SettingsUI.Section label="Animations">
+          <SettingsUI.SwitchItem
+            label="Stars"
+            secondaryLabel="The drifting stars behind the home page and the session, in the dark theme"
+            iconName="sparkles"
+            iconBackgroundColor="#a5b4fc"
+            value={showStars}
+            onValueChange={setShowStars}
+            testID="settings.show-stars"
+          />
+          <SettingsUI.SwitchItem
+            label="Breathing circle"
+            secondaryLabel="The circles that grow and shrink with each breath"
+            iconName="ellipse-outline"
+            iconBackgroundColor="#fdba74"
+            value={showBreathingAnimation}
+            onValueChange={setShowBreathingAnimation}
+            testID="settings.show-breathing-animation"
           />
         </SettingsUI.Section>
         <SettingsUI.Section label="Appearance">

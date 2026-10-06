@@ -5,7 +5,7 @@ import { Animated, AppState, ScrollView, StyleSheet, Text, View } from "react-na
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Pressable } from "@breathly/common/pressable";
 import { colors } from "@breathly/design/colors";
-import { widestDeviceDimension } from "@breathly/design/metrics";
+import { shortestDeviceDimension, widestDeviceDimension } from "@breathly/design/metrics";
 import { useColorScheme, useThemeColors } from "@breathly/design/theme";
 import { fontFamilies, fontSizes } from "@breathly/design/typography";
 import {
@@ -45,6 +45,7 @@ import { useScreenReaderEnabled } from "@breathly/utils/use-accessibility-prefer
 import { useOnUpdate } from "@breathly/utils/use-on-update";
 import { BreathingAnimation } from "./breathing-animation";
 import { ExerciseComplete } from "./complete";
+import { CountdownNumber } from "./countdown-number";
 import { ExerciseInterlude } from "./interlude";
 import { Timer } from "./timer";
 
@@ -170,6 +171,8 @@ export const ExercisePanel: FC<ExercisePanelProps> = ({ experience, visible }) =
     dispatchSession({ type: "resume" });
   }, [dispatchSession]);
 
+  const showStars = useSettingsStore((state) => state.showStars);
+
   const handleClose = useCallback(() => {
     stopSession();
     setPage("home");
@@ -195,7 +198,7 @@ export const ExercisePanel: FC<ExercisePanelProps> = ({ experience, visible }) =
       {session.status === "interlude" && <ExerciseInterlude onComplete={handleInterludeComplete} />}
       {session.status === "running" && (
         <>
-          {colorScheme === "dark" && (
+          {colorScheme === "dark" && showStars && (
             <StarsBackground size={widestDeviceDimension * 0.8} fadeIn={true} />
           )}
           <ExerciseRunningFragment
@@ -287,8 +290,10 @@ const ExerciseRunningFragment: FC<ExerciseRunningFragmentProps> = ({
   onActiveElapsedChange,
   initialStepIndex,
 }) => {
-  const { timeLimit, voice, countdownNumbers, speakNumbers, softBeeps } = experience;
+  const { timeLimit, voice, countdownNumbers, speakNumbers, softBeeps, numbersVolume, beepVolume } =
+    experience;
   const vibrationEnabled = useSettingsStore((state) => state.vibrationEnabled);
+  const showBreathingAnimation = useSettingsStore((state) => state.showBreathingAnimation);
   const selectedPatternSteps = useMemo(() => getExperiencePatternSteps(experience), [experience]);
   const [unmountContentAnimVal] = useState(new Animated.Value(1));
   const stepsMetadata = useMemo(
@@ -296,7 +301,6 @@ const ExerciseRunningFragment: FC<ExerciseRunningFragmentProps> = ({
     [selectedPatternSteps],
   );
 
-  const theme = useThemeColors();
   const { currentStep, exerciseAnimVal, textAnimVal } = useExerciseLoop(
     stepsMetadata,
     initialStepIndex,
@@ -366,10 +370,12 @@ const ExerciseRunningFragment: FC<ExerciseRunningFragmentProps> = ({
       // The step after the last one only ends the session.
       if (completionStartedRef.current) return;
       setSecondsRemaining(remaining);
-      if (softBeeps) void playSoftBeep();
-      if (speakNumbers && (index > 0 || !stepCued)) speakCountdownNumber(remaining);
+      if (softBeeps) void playSoftBeep(beepVolume);
+      if (speakNumbers && (index > 0 || !stepCued)) {
+        speakCountdownNumber(remaining, voice, numbersVolume);
+      }
     });
-  }, [countsSeconds, currentStep, softBeeps, speakNumbers, voice]);
+  }, [beepVolume, countsSeconds, currentStep, numbersVolume, softBeeps, speakNumbers, voice]);
 
   const handleTimeLimitReached = useCallback(() => {
     timeLimitReachedRef.current = true;
@@ -390,23 +396,19 @@ const ExerciseRunningFragment: FC<ExerciseRunningFragmentProps> = ({
       />
       {currentStep && (
         <View style={styles.stepContent}>
-          <BreathingAnimation animationValue={exerciseAnimVal} />
+          {/* The countdown sits in the middle of the circle, or of the space it leaves when the
+              circle is turned off. */}
+          <View style={styles.circleArea}>
+            {showBreathingAnimation && <BreathingAnimation animationValue={exerciseAnimVal} />}
+            {countdownNumbers && secondsRemaining !== undefined && (
+              <CountdownNumber value={secondsRemaining} />
+            )}
+          </View>
           <StepDescription
             label={currentStep.label}
             durationMs={currentStep.duration}
             animationValue={textAnimVal}
           />
-          {countdownNumbers && secondsRemaining !== undefined && (
-            <Text
-              style={[styles.countdown, { color: theme.text }]}
-              testID="exercise.countdown"
-              // The step label already tells a screen reader how long the step lasts.
-              importantForAccessibility="no"
-              accessibilityElementsHidden
-            >
-              {secondsRemaining}
-            </Text>
-          )}
           <AnimatedDots
             numberOfDots={3}
             totalDuration={currentStep.duration}
@@ -471,13 +473,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingTop: 8,
   },
-  countdown: {
-    ...fontSizes.xxl5,
-    lineHeight: 56,
-    fontFamily: fontFamilies.regular,
-    fontVariant: ["tabular-nums"],
-    marginBottom: 8,
-    textAlign: "center",
+  circleArea: {
+    minHeight: shortestDeviceDimension,
+    minWidth: shortestDeviceDimension,
   },
   closeButton: {
     alignItems: "center",

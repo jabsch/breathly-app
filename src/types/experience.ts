@@ -23,6 +23,9 @@ export interface ExperienceSettings {
   countdownNumbers: boolean;
   speakNumbers: boolean;
   softBeeps: boolean;
+  // Percentages, for the spoken numbers and the beeps of this experience.
+  numbersVolume: number;
+  beepVolume: number;
   timerDurationMs: number;
 }
 

@@ -9,6 +9,7 @@ const BACKGROUND_ANIM_DURATION = ms("2 min");
 
 interface Props {
   fadeIn?: boolean;
+  fullHeight?: boolean;
   onImageLoaded?: () => unknown;
   size?: number;
 }
@@ -24,6 +25,7 @@ type WebMaskStyle = ViewStyle & {
 
 export const StarsBackground: FC<Props> = ({
   fadeIn,
+  fullHeight,
   onImageLoaded,
   size = widestDeviceDimension * 0.6,
 }) => {
@@ -88,6 +90,10 @@ export const StarsBackground: FC<Props> = ({
     }
   };
 
+  const mask = fullHeight
+    ? "linear-gradient(to bottom, black 0%, rgba(0, 0, 0, 0.55) 45%, rgba(0, 0, 0, 0.18) 80%, transparent 100%)"
+    : "linear-gradient(to bottom, black 0%, black 70%, transparent 92%)";
+
   return (
     <Animated.View
       pointerEvents="none"
@@ -96,10 +102,10 @@ export const StarsBackground: FC<Props> = ({
         {
           height: size,
           opacity: fadeInAnimValue,
-          maskImage: "linear-gradient(to bottom, black 0%, black 70%, transparent 92%)",
+          maskImage: mask,
           maskRepeat: "no-repeat",
           maskSize: "100% 100%",
-          WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 70%, transparent 92%)",
+          WebkitMaskImage: mask,
           WebkitMaskRepeat: "no-repeat",
           WebkitMaskSize: "100% 100%",
         } as WebMaskStyle,

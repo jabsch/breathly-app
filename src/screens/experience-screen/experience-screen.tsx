@@ -181,13 +181,21 @@ export const ExperienceRootScreen: FC<
               />
               <SettingsUI.SwitchItem
                 label="Say the numbers"
-                secondaryLabel="A voice counts along with the numbers"
+                secondaryLabel="Counted in a voice like the one chosen above"
                 iconName="chatbubble-ellipses"
                 iconBackgroundColor="#fde68a"
                 value={draft.speakNumbers}
                 onValueChange={(speakNumbers) => update({ speakNumbers })}
                 testID="experience.speak-numbers"
               />
+              {draft.speakNumbers && (
+                <SettingsUI.SliderItem
+                  label="Numbers volume"
+                  value={draft.numbersVolume}
+                  onValueChange={(numbersVolume) => update({ numbersVolume })}
+                  testID="experience.numbers-volume"
+                />
+              )}
               <SettingsUI.SwitchItem
                 label="Soft beeps"
                 secondaryLabel="A soft beep every second"
@@ -197,6 +205,14 @@ export const ExperienceRootScreen: FC<
                 onValueChange={(softBeeps) => update({ softBeeps })}
                 testID="experience.soft-beeps"
               />
+              {draft.softBeeps && (
+                <SettingsUI.SliderItem
+                  label="Beep volume"
+                  value={draft.beepVolume}
+                  onValueChange={(beepVolume) => update({ beepVolume })}
+                  testID="experience.beep-volume"
+                />
+              )}
             </SettingsUI.Section>
           </>
         )}

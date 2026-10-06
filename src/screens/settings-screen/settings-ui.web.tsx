@@ -258,6 +258,11 @@ const StepperItem: FC<StepperItemProps> = ({
 const Header: FC<{ title: string; onBack: () => void }> = () => null;
 
 const styles = StyleSheet.create({
+  slider: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 8,
+  },
   item: {
     paddingRight: 32,
     paddingVertical: 8,
@@ -357,6 +362,40 @@ const styles = StyleSheet.create({
   },
 });
 
+const SliderItem: SettingsUIModule["SliderItem"] = ({
+  value,
+  onValueChange,
+  step = 5,
+  testID,
+  ...baseProps
+}) => {
+  const isDarkMode = useColorScheme() === "dark";
+  return (
+    <BaseItem {...baseProps} testID={testID}>
+      <View style={styles.slider}>
+        {React.createElement("input", {
+          type: "range",
+          min: 0,
+          max: 100,
+          step,
+          value,
+          "aria-label": baseProps.label,
+          "data-testid": testID ? `${testID}.slider` : undefined,
+          style: { accentColor: colors["blue-500"], width: 96 },
+          onChange: (event: { target: { value: string } }) =>
+            onValueChange(Number(event.target.value)),
+        })}
+        <Text
+          style={[styles.stepperValueText, isDarkMode && styles.textDark]}
+          testID={testID ? `${testID}.value` : undefined}
+        >
+          {`${value}%`}
+        </Text>
+      </View>
+    </BaseItem>
+  );
+};
+
 export const SettingsUI: SettingsUIModule = {
   Section,
   Header,
@@ -364,5 +403,6 @@ export const SettingsUI: SettingsUIModule = {
   PickerItem,
   SwitchItem,
   StepperItem,
+  SliderItem,
   RadioButtonItem,
 };

@@ -54,6 +54,8 @@ describe("settings state", () => {
           countdownNumbers: true,
           speakNumbers: true,
           softBeeps: true,
+          numbersVolume: 60,
+          beepVolume: 20,
         },
         { ...defaultExperienceSettings, id: "b", kind: "timer" as const, name: "Tea" },
       ],
@@ -61,7 +63,8 @@ describe("settings state", () => {
       theme: "light" as const,
       vibrationEnabled: false,
       voiceVolume: 70,
-      beepVolume: 20,
+      showStars: false,
+      showBreathingAnimation: false,
       voiceOtherAudio: "pause" as const,
       beepOtherAudio: "lower" as const,
     };
@@ -211,7 +214,18 @@ describe("settings migration", () => {
 
   it("leaves a current payload alone", () => {
     const current = { ...defaultSettingsState, experiences: [] };
-    expect(migratePersistedSettingsState(current, 3)).toBe(current);
+    expect(migratePersistedSettingsState(current, 4)).toBe(current);
+  });
+
+  it("gives every experience the beep and voice volumes set before version 4", () => {
+    const before = {
+      ...defaultSettingsState,
+      voiceVolume: 70,
+      beepVolume: 20,
+      experiences: [{ ...defaultExperienceSettings, id: "a" }],
+    };
+    const migrated = migratePersistedSettingsState(before, 3) as typeof before;
+    expect(migrated.experiences[0]).toMatchObject({ beepVolume: 20, numbersVolume: 70 });
   });
 
   it("lowers the home heights a version 2 user never changed, and keeps chosen ones", () => {
