@@ -1,0 +1,55 @@
+appId: com.mmazzarolo.breathly
+name: Open Settings, About and the breathing editor without a crash
+---
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: "home.screen"
+    timeout: 10000
+# Settings, down to the Animations switches.
+- tapOn:
+    id: "home.menu"
+- tapOn:
+    id: "menu.settings"
+- extendedWaitUntil:
+    visible:
+      id: "settings.screen"
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      id: "settings.show-breathing-animation"
+    direction: DOWN
+- runFlow:
+    file: ../subflows/close-settings.yaml
+# About.
+- tapOn:
+    id: "home.menu"
+- tapOn:
+    id: "menu.about"
+- assertVisible: "About"
+- back
+- extendedWaitUntil:
+    visible:
+      id: "home.screen"
+    timeout: 5000
+# The breathing editor, with the counted numbers on so their volume slider shows.
+- tapOn:
+    id: "home.experience.breathing.edit"
+- extendedWaitUntil:
+    visible:
+      id: "experience.screen"
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      id: "experience.speak-numbers"
+    direction: DOWN
+    # Centred, so the tap lands on the switch and not on the Save button over the list's foot.
+    centerElement: true
+- tapOn:
+    id: "experience.speak-numbers"
+- scrollUntilVisible:
+    element:
+      id: "experience.numbers-volume"
+    direction: DOWN
+    centerElement: true
+- back

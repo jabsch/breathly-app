@@ -18,13 +18,13 @@ import {
   alpha,
   clickable,
   clip,
+  defaultMinSize,
   fillMaxWidth,
   padding,
   selectable,
   Shapes,
   testID as testTagModifier,
   toggleable,
-  width as widthModifier,
 } from "@expo/ui/jetpack-compose/modifiers";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import React, { FC, PropsWithChildren, useState } from "react";
@@ -416,7 +416,9 @@ const StepperItem: FC<StepperItemProps & GroupPositionProp> = ({
           <Text
             style={{ textAlign: "center" }}
             modifiers={[
-              widthModifier(getStepperValueWidth(fractionDigits)),
+              // Not `width`: @expo/ui 57.0.22 reads a width as Either<Int, IntrinsicSize>, a JS
+              // number arrives as a Double, and the cast throws, closing the app on Settings.
+              defaultMinSize({ minWidth: getStepperValueWidth(fractionDigits) }),
               ...(testID ? [testTagModifier(`${testID}.value`)] : []),
             ]}
           >
