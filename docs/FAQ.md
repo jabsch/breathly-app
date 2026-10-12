@@ -8,6 +8,7 @@ and test builds are on the
 Questions are ordered by how often they've been asked, most asked first. The counts are in
 [`faq-asks.json`](./faq-asks.json), and `bun run faq:sort` reorders this page from them.
 
+- [Where are the APKs built, and does it cost anything?](#where-are-the-apks-built-and-does-it-cost-anything)
 - [Where do I get the APK, and how do I install it?](#where-do-i-get-the-apk-and-how-do-i-install-it)
 - [How do I switch between my breathing exercises and timers on the home page?](#how-do-i-switch-between-my-breathing-exercises-and-timers-on-the-home-page)
 - [Does the app use dark mode?](#does-the-app-use-dark-mode)
@@ -27,6 +28,22 @@ Questions are ordered by how often they've been asked, most asked first. The cou
 - [Why does the app ask to send notifications?](#why-does-the-app-ask-to-send-notifications)
 - [Does this work on iPhone?](#does-this-work-on-iphone)
 - [What does the license allow?](#what-does-the-license-allow)
+
+## Where are the APKs built, and does it cost anything?
+
+On GitHub Actions, in the [Android APK workflow](../.github/workflows/android-apk.yml). Each run
+builds the APK (about 15 minutes), runs the Android 11 smoke test (about 7) and publishes the
+release (a few seconds), so building is what takes the time, not publishing.
+
+This repository is public, as GitHub keeps every fork of a public repository, so its runs on
+GitHub's standard runners are free. A private repository on GitHub Free gets 2,000 minutes a month,
+which this repository's pace would use up in about three weeks. A private copy would have to be a
+new repository rather than this fork.
+
+The other places a build could run are a fresh cloud workspace (which downloads the Android tools
+each time and may not run the emulator), Expo's EAS Build (a monthly build limit, and no smoke
+test) or your own computer with Android Studio. None beats free builds here, so the way to use
+fewer minutes is to build less often, for example skipping builds when only `docs/` changes.
 
 ## Where do I get the APK, and how do I install it?
 
